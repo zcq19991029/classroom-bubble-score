@@ -45,6 +45,14 @@ $$;
 revoke all on function public.resolve_teacher_email(text) from public;
 grant execute on function public.resolve_teacher_email(text) to anon, authenticated;
 
+create or replace function public.verify_teacher_identity(p_email text, p_employee_no text)
+returns text language sql security definer set search_path = public, pg_temp as $$
+  select email from public.teacher_profiles
+  where lower(email) = lower(p_email) and employee_no = p_employee_no limit 1;
+$$;
+revoke all on function public.verify_teacher_identity(text, text) from public;
+grant execute on function public.verify_teacher_identity(text, text) to anon, authenticated;
+
 alter table public.teacher_workspaces enable row level security;
 
 revoke all on public.teacher_workspaces from anon;
