@@ -49,7 +49,7 @@
   <div class="watermark"></div>
   <header>
     <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small id="saveStatus">已自动保存</small></div></div>
-    <div class="toolbar">
+    <div class="toolbar"><select id="classSwitcher" class="btn" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
       <button class="btn lesson-badge" id="lessonBadge">选择课节</button>
       <button class="btn" id="attendanceBtn">考勤</button>
@@ -226,6 +226,17 @@
   window.addEventListener('resize',()=>{const W=stage.clientWidth,H=stage.clientHeight;nodes.forEach(n=>{n.x=Math.min(n.x,W-112);n.y=Math.min(n.y,H-142)})});
   document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('mousedown',e=>{if(e.target===o&&o.id!=='lessonModal')closeModal(o.id)}));
   render();selectedLesson=/^第(?:[1-9]|1\d|2[0-4])节课$/.test(data.lastLesson||'')?data.lastLesson:'第1节课';selectLesson(lessonButtons.find(x=>x.dataset.lesson===selectedLesson),false);openModal('lessonModal');setTimeout(()=>selectLesson(lessonButtons.find(x=>x.dataset.lesson===selectedLesson),true),60);requestAnimationFrame(tick);
+  const classStoreKey=KEY+'_class_workspaces';
+  let classWorkspaces={};
+  try{classWorkspaces=JSON.parse(localStorage.getItem(classStoreKey)||'{}')||{}}catch(e){classWorkspaces={}}
+  if(!Object.keys(classWorkspaces).length&&data&&data.className){classWorkspaces[data.className]=data;localStorage.setItem(classStoreKey,JSON.stringify(classWorkspaces))}
+  const classSwitcher=document.querySelector('#classSwitcher');
+  function refreshClassWorkspaces(){if(!classSwitcher)return;const names=Object.keys(classWorkspaces);classSwitcher.innerHTML=names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')||'<option value="">暂无班级</option>';classSwitcher.value=data.className||''}
+  function persistClassWorkspace(){if(!data||!data.className)return;classWorkspaces[data.className]=data;localStorage.setItem(classStoreKey,JSON.stringify(classWorkspaces))}
+  refreshClassWorkspaces();
+  classSwitcher&&classSwitcher.addEventListener('change',()=>{const name=classSwitcher.value;if(!name||name===data.className)return;persistClassWorkspace();const next=classWorkspaces[name];if(!next)return;data=JSON.parse(JSON.stringify(next));render();refreshClassWorkspaces();toast(`已切换到 ${name}`)});
+  setInterval(persistClassWorkspace,1000);
+  window.addEventListener('beforeunload',persistClassWorkspace);
 })();
 </script>
 </body>
