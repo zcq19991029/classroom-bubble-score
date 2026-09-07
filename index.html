@@ -11,10 +11,7 @@
     body{font-family:"Microsoft YaHei UI","PingFang SC",system-ui,sans-serif;color:var(--ink);background:#fbfbfd;user-select:none}
     button,input,select{font:inherit} button{cursor:pointer}
     .app{height:100%;display:grid;grid-template-rows:auto auto 1fr;position:relative;isolation:isolate}
-    .app:before{content:"";position:fixed;inset:0;z-index:-3;background:
-      radial-gradient(circle at 44% 38%,rgba(255,235,238,.86) 0 18%,transparent 18.2%),
-      radial-gradient(circle at 44% 38%,rgba(255,245,246,.75) 0 30%,transparent 30.2%),
-      linear-gradient(135deg,#f7f8fb,#fff 48%,#f6f4f8)}
+    .app:before{content:"";position:fixed;inset:0;z-index:-3;background:linear-gradient(135deg,#f7f8fb,#fff 48%,#f6f4f8)}
     .watermark{position:fixed;left:50%;top:48%;width:min(58vw,650px);aspect-ratio:1;transform:translate(-50%,-50%);border:1.8vw solid rgba(235,58,67,.035);border-radius:50%;z-index:-2}
     .watermark:after{content:"+";position:absolute;inset:12%;display:grid;place-items:center;color:rgba(235,58,67,.026);font:bold 21vw/1 Arial}
     header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:rgba(255,255,255,.76);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.9);box-shadow:0 8px 34px rgba(71,34,52,.07);z-index:20}
@@ -42,7 +39,8 @@
     .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,30px);background:#372d38;color:#fff;border-radius:13px;padding:11px 17px;opacity:0;pointer-events:none;z-index:200;transition:.28s;box-shadow:0 10px 30px rgba(35,20,31,.2);font-size:13px}.toast.show{opacity:1;transform:translate(-50%,0)}
     @media(max-width:720px){header{padding:10px}.brand small{display:none}.brand h1{font-size:15px}.brand-mark{width:34px;height:34px}.btn{padding:0 10px}.search-box{min-width:155px}.search-box input{width:105px}.bubble-wrap{transform-origin:center}.hint{top:8px}.panel-body{padding-left:14px;padding-right:14px}.panel-head,.tabs{padding-left:14px;padding-right:14px}}
     @media(prefers-reduced-motion:reduce){.bubble-wrap{transition:none}.bubble-wrap.up .bubble,.bubble-wrap.down .bubble{animation-duration:.2s}}
-  </style>
+.watermark{display:none!important}.stage:before{inset:auto;left:50%;top:50%;width:min(72vh,72vw,720px);height:min(72vh,72vw,720px);transform:translate(-50%,-50%);background-size:contain;opacity:.22}.stage:after{display:none!important}
+</style>
 </head>
 <body>
 <div class="app">
@@ -200,7 +198,7 @@
   function rosterFromWorkbook(buffer){if(!window.XLSX)throw new Error('Excel解析库未找到，请将 xlsx.full.min.js 与本页面放在同一文件夹');const wb=XLSX.read(buffer,{type:'array'});let best=null;for(const sn of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:false});for(let r=0;r<Math.min(rows.length,30);r++){const vals=rows[r].map(v=>String(v).trim()),noCol=vals.findIndex(v=>v==='学号'||/学生.*编号/.test(v)),nameCol=vals.findIndex(v=>v==='姓名'||v==='学生姓名');if(noCol>=0&&nameCol>=0){const students=[];for(let i=r+1;i<rows.length;i++){const no=String(rows[i][noCol]??'').trim(),name=String(rows[i][nameCol]??'').trim();if(no&&name&&!/合计|总计/.test(name))students.push({id:crypto.randomUUID(),studentNo:no,name,score:0,emoji:EMOJIS[students.length%EMOJIS.length]})}if(students.length&&(!best||students.length>best.students.length))best={students,rows}}}}if(!best)throw new Error('没有找到“学号”和“姓名”列');let className='';for(const row of best.rows.slice(0,12))for(const cell of row){const m=String(cell).match(/班级[：:]\s*([^\s　]+)/);if(m){className=m[1];break}}return {students:best.students,className}}
   document.querySelector('#databaseBtn').onclick=()=>openModal('databaseModal');document.querySelector('#importBtn').onclick=()=>{document.querySelector('#classNameInput').value=data.className||'';openModal('importModal')};document.querySelector('#backupBtn').onclick=backup;document.querySelector('#restoreBtn').onclick=()=>document.querySelector('#restoreFile').click();
   document.querySelector('#rosterFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;document.querySelector('#rosterFileName').textContent=f.name;try{if(/\.xls[xm]?$/i.test(f.name)){const result=rosterFromWorkbook(await f.arrayBuffer());document.querySelector('#rosterText').value=result.students.map(s=>`${s.studentNo},${s.name}`).join('\n');if(result.className)document.querySelector('#classNameInput').value=result.className;toast(`已从 Excel 读取 ${result.students.length} 人`)}else{document.querySelector('#rosterText').value=await f.text();toast('已读取 '+f.name)}}catch(err){document.querySelector('#rosterText').value='';toast(err.message||'Excel 文件读取失败')}e.target.value=''};
-  document.querySelector('#confirmImport').onclick=()=>{const students=parseRoster(document.querySelector('#rosterText').value);if(!students.length){toast('请先粘贴或选择名单文件');return}if(data.students.length||data.logs.length)backup();data={version:6,className:document.querySelector('#classNameInput').value.trim()||'课堂加分',students,logs:[],attendance:[],homework:[],examScores:{},settings:{...DEFAULT_SETTINGS},lastLesson:currentLesson,updatedAt:Date.now()};recoveryNotice='';closeModal('importModal');render();toast(`已生成 ${students.length} 个学生气泡`)};
+  document.querySelector('#confirmImport').onclick=()=>{const students=parseRoster(document.querySelector('#rosterText').value);if(!students.length){toast('请先粘贴或选择名单文件');return}if(data.students.length||data.logs.length)backup();data={version:6,className:document.querySelector('#classNameInput').value.trim()||'课堂加分',students,logs:[],attendance:[],homework:[],examScores:{},settings:{...DEFAULT_SETTINGS},lastLesson:currentLesson,updatedAt:Date.now()};recoveryNotice='';closeModal('importModal');render();save();toast(`已生成 ${students.length} 个学生气泡`)};
   document.querySelector('#restoreFile').onchange=async e=>{try{const obj=JSON.parse(await e.target.files[0].text());if(!obj||!Array.isArray(obj.students))throw Error();data=obj;save();render();toast('备份恢复成功')}catch(err){toast('备份文件无法识别')}e.target.value=''};
   document.querySelector('#confirmCustom').onclick=()=>{const d=Number(document.querySelector('#customScore').value),n=nodes.find(n=>n.s.id===customStudentId);if(!n||!Number.isFinite(d)||d===0){toast('请输入非零分值');return}adjust(n,d);closeModal('customModal')};document.querySelectorAll('[data-custom]').forEach(b=>b.onclick=()=>document.querySelector('#customScore').value=b.dataset.custom);
   document.querySelector('#studentSearch').addEventListener('input',applySearch);document.querySelector('#studentSearch').addEventListener('keydown',e=>{if(e.key==='Enter')locateSearch();if(e.key==='Escape'){e.currentTarget.value='';applySearch();e.currentTarget.blur()}});
@@ -235,7 +233,7 @@
   function persistClassWorkspace(){if(!data||!data.className)return;classWorkspaces[data.className]=data;localStorage.setItem(classStoreKey,JSON.stringify(classWorkspaces))}
   refreshClassWorkspaces();
   classSwitcher&&classSwitcher.addEventListener('change',()=>{const name=classSwitcher.value;if(!name||name===data.className)return;persistClassWorkspace();const next=classWorkspaces[name];if(!next)return;data=JSON.parse(JSON.stringify(next));render();refreshClassWorkspaces();toast(`已切换到 ${name}`)});
-  setInterval(persistClassWorkspace,1000);
+  setInterval(()=>{persistClassWorkspace();refreshClassWorkspaces()},1000);
   window.addEventListener('beforeunload',persistClassWorkspace);
 })();
 </script>
