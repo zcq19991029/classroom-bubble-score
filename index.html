@@ -40,7 +40,7 @@
     @media(max-width:720px){header{padding:10px}.brand small{display:none}.brand h1{font-size:15px}.brand-mark{width:34px;height:34px}.btn{padding:0 10px}.search-box{min-width:155px}.search-box input{width:105px}.bubble-wrap{transform-origin:center}.hint{top:8px}.panel-body{padding-left:14px;padding-right:14px}.panel-head,.tabs{padding-left:14px;padding-right:14px}}
     @media(prefers-reduced-motion:reduce){.bubble-wrap{transition:none}.bubble-wrap.up .bubble,.bubble-wrap.down .bubble{animation-duration:.2s}}
 .watermark{display:none!important}.stage:before{inset:auto;left:50%;top:50%;width:min(72vh,72vw,720px);height:min(72vh,72vw,720px);transform:translate(-50%,-50%);background-size:contain;opacity:.22}.stage:after{display:none!important}
-  .schedule-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}.schedule-fields label,.schedule-fields input,.schedule-fields select{height:38px;border:1px solid #e5dfe5;border-radius:10px;background:#fff;padding:0 10px;color:#554955}.schedule-fields label{display:flex;align-items:center;gap:5px;font-size:12px}.schedule-fields select{border:0;padding:0;outline:0;flex:1}.schedule-fields input{grid-column:1/-1;width:100%;outline:0}
+  .schedule-fields{display:none!important}
   </style>
 </head>
 <body>
@@ -216,7 +216,9 @@
   document.querySelector('#fullscreenBtn').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
   const scheduleWeek=document.querySelector('#scheduleWeek'),scheduleDay=document.querySelector('#scheduleDay'),schedulePeriod=document.querySelector('#schedulePeriod'),scheduleCourse=document.querySelector('#scheduleCourse');
   for(let w=1;w<=20;w++)scheduleWeek.insertAdjacentHTML('beforeend',`<option value="${w}">${w}</option>`);
-  const lessonGrid=document.querySelector('#lessonGrid'),lessonButtons=[...document.querySelectorAll('[data-lesson]')];
+  const lessonGrid=document.querySelector('#lessonGrid'),weekDays=['星期一','星期二','星期三','星期四','星期五','星期六','星期日'],mergedPeriods=['1-2','1-4','3-4','5-6','5-8','7-8','9-10','9-12','11-12','13-14','15-16','17-18','19-20','21-22','23-24'];
+  lessonGrid.innerHTML=Array.from({length:20},(_,wi)=>weekDays.flatMap(day=>mergedPeriods.map(period=>`<button class="lesson-choice" data-lesson="第${period}节课 · 第${wi+1}周 · ${day}">第${period}节课 · 第${wi+1}周 · ${day}</button>`)).join('')).join('');
+  const lessonButtons=[...lessonGrid.querySelectorAll('[data-lesson]')];
   let wheelTimer=0,dragY=0,dragTop=0,dragging=false;
   function selectLesson(button,scroll=true){if(!button)return;const index=lessonButtons.indexOf(button);selectedLesson=button.dataset.lesson;lessonButtons.forEach(x=>x.classList.toggle('active',x===button));if(scroll)lessonGrid.scrollTop=index*54}
   lessonButtons.forEach(b=>b.onclick=e=>{e.preventDefault();selectLesson(b,false);setTimeout(()=>lessonGrid.scrollTop=lessonButtons.indexOf(b)*54,30)});
@@ -241,6 +243,7 @@
   setInterval(()=>{persistClassWorkspace();refreshClassWorkspaces()},1000);
   window.addEventListener('beforeunload',persistClassWorkspace);
 })();
+  document.querySelector('#confirmLesson').onclick=()=>{if(!selectedLesson){toast('请先滚动选择课次');return}currentLesson=selectedLesson;data.lastLesson=currentLesson;document.querySelector('#lessonBadge').textContent=currentLesson;closeModal('lessonModal');renderDuty();updateAttendanceBadges();save();toast(`${currentLesson}，开始记录`)};
 </script>
 </body>
 </html>
