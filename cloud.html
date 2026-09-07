@@ -42,7 +42,8 @@
     @media(prefers-reduced-motion:reduce){.bubble-wrap{transition:none}.bubble-wrap.up .bubble,.bubble-wrap.down .bubble{animation-duration:.2s}}
 .otp-row{display:grid;grid-template-columns:1fr 132px;gap:8px}.otp-row .btn{white-space:nowrap;padding:0 8px;font-size:13px}
 .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px;padding:4px;background:#f7f3f6;border-radius:12px}.auth-tabs button{border:0;background:transparent;border-radius:9px;padding:9px;color:#8c8490;cursor:pointer}.auth-tabs button.active{background:#fff;color:#d92734;font-weight:700;box-shadow:0 3px 10px rgba(60,30,40,.08)}.remember-row{display:flex;align-items:center;gap:7px;color:#8c8490;font-size:12px}.remember-row input{width:15px;height:15px}.class-switcher{min-width:132px;color:#d92734;font-weight:700}.account-btn{display:flex;align-items:center;gap:8px;max-width:190px}.account-avatar{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:#feecef;color:#d92734;font-size:13px;font-weight:800}.account-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.profile-preview{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #eee8ed;border-radius:14px;background:#fff8f9}.profile-avatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#ff5962,#d91925);color:#fff;font-size:23px;font-weight:900;box-shadow:0 10px 24px rgba(232,41,50,.22)}.profile-preview b{display:block}.profile-preview span{font-size:12px;color:#8c8490}.watermark{display:none!important}.stage:before{inset:auto;left:50%;top:50%;width:min(72vh,72vw,720px);height:min(72vh,72vw,720px);transform:translate(-50%,-50%);background-size:contain;opacity:.22}.stage:after{display:none!important}
-</style>
+  .schedule-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}.schedule-fields label,.schedule-fields input,.schedule-fields select{height:38px;border:1px solid #e5dfe5;border-radius:10px;background:#fff;padding:0 10px;color:#554955}.schedule-fields label{display:flex;align-items:center;gap:5px;font-size:12px}.schedule-fields select{border:0;padding:0;outline:0;flex:1}.schedule-fields input{grid-column:1/-1;width:100%;outline:0}
+  </style>
 </head>
 <body>
 <div class="app">
@@ -114,6 +115,7 @@
 </section></div>
 
 <div class="overlay" id="lessonModal"><section class="panel small">
+  <div class="schedule-fields"><label>第 <select id="scheduleWeek"></select> 周</label><label><select id="scheduleDay"><option>星期一</option><option>星期二</option><option>星期三</option><option>星期四</option><option>星期五</option><option>星期六</option><option>星期日</option></select></label><label>第 <select id="schedulePeriod"><option value="1-2">1-2</option><option value="3-4">3-4</option><option value="5-6">5-6</option><option value="7-8">7-8</option><option value="9-10">9-10</option><option value="11-12">11-12</option><option value="13-14">13-14</option><option value="15-16">15-16</option><option value="17-18">17-18</option><option value="19-20">19-20</option><option value="21-22">21-22</option><option value="23-24">23-24</option></select> 节</label><input id="scheduleCourse" placeholder="课程名称（可选）" /></div>
   <div class="panel-head"><div><h2>请选择这是第几节课</h2><p>按实际授课顺序选择，不受大小周影响</p></div></div>
   <div class="form">
     <div class="wheel-tip">上下滑动选择课程序号</div>
@@ -249,6 +251,8 @@
   document.querySelector('#page-assessment').onchange=e=>{if(e.target.matches('[data-setting]')){data.settings[e.target.dataset.setting]=Math.max(0,Number(e.target.value)||0);save();renderDatabase()}else if(e.target.matches('[data-examstudent]')){const v=e.target.value.trim();if(v==='')delete data.examScores[e.target.dataset.examstudent];else data.examScores[e.target.dataset.examstudent]=clampScore(v);save();document.querySelector('#page-assessment').innerHTML=assessmentPage()}};
   document.querySelectorAll('[data-homework]').forEach(b=>b.onclick=()=>document.querySelector('#homeworkDelta').value=b.dataset.homework);document.querySelector('#confirmHomework').onclick=saveHomework;
   document.querySelector('#fullscreenBtn').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
+  const scheduleWeek=document.querySelector('#scheduleWeek'),scheduleDay=document.querySelector('#scheduleDay'),schedulePeriod=document.querySelector('#schedulePeriod'),scheduleCourse=document.querySelector('#scheduleCourse');
+  for(let w=1;w<=20;w++)scheduleWeek.insertAdjacentHTML('beforeend',`<option value="${w}">${w}</option>`);
   const lessonGrid=document.querySelector('#lessonGrid'),lessonButtons=[...document.querySelectorAll('[data-lesson]')];
   let wheelTimer=0,dragY=0,dragTop=0,dragging=false;
   function selectLesson(button,scroll=true){if(!button)return;const index=lessonButtons.indexOf(button);selectedLesson=button.dataset.lesson;lessonButtons.forEach(x=>x.classList.toggle('active',x===button));if(scroll)lessonGrid.scrollTop=index*54}
@@ -257,7 +261,7 @@
   lessonGrid.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.target===lessonGrid){dragging=true;dragY=e.clientY;dragTop=lessonGrid.scrollTop;lessonGrid.setPointerCapture(e.pointerId)}});
   lessonGrid.addEventListener('pointermove',e=>{if(dragging)lessonGrid.scrollTop=dragTop-(e.clientY-dragY)});
   lessonGrid.addEventListener('pointerup',()=>dragging=false);lessonGrid.addEventListener('pointercancel',()=>dragging=false);
-  document.querySelector('#confirmLesson').onclick=()=>{const lesson=selectedLesson;if(!lesson){toast('请先滚动选择课次');return}currentLesson=lesson;data.lastLesson=lesson;document.querySelector('#lessonBadge').textContent=lesson;closeModal('lessonModal');renderDuty();updateAttendanceBadges();save();if(recoveryNotice){setTimeout(()=>{document.querySelector('#classNameInput').value='';openModal('importModal');toast(recoveryNotice)},180)}else toast(`${lesson}，开始记录`)};
+  document.querySelector('#confirmLesson').onclick=()=>{const lesson=selectedLesson;if(!lesson){toast('请先滚动选择课次');return}const week=Number(scheduleWeek.value||1),day=scheduleDay.value,period=schedulePeriod.value,course=scheduleCourse.value.trim();currentLesson=`第${period}节课 · 第${week}周${day}${course?' · '+course:''}`;data.lastLesson=currentLesson;document.querySelector('#lessonBadge').textContent=currentLesson;closeModal('lessonModal');renderDuty();updateAttendanceBadges();save();if(recoveryNotice){setTimeout(()=>{document.querySelector('#classNameInput').value='';openModal('importModal');toast(recoveryNotice)},180)}else toast(`${currentLesson}，开始记录`)};
   document.querySelector('#lessonBadge').onclick=()=>{const lesson=/^第(?:[1-9]|1\d|2[0-4])节课$/.test(currentLesson)?currentLesson:'第1节课';openModal('lessonModal');setTimeout(()=>selectLesson(lessonButtons.find(x=>x.dataset.lesson===lesson),true),40)};
   window.addEventListener('resize',()=>{const W=stage.clientWidth,H=stage.clientHeight;nodes.forEach(n=>{n.x=Math.min(n.x,W-112);n.y=Math.min(n.y,H-142)})});
   document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('mousedown',e=>{if(e.target===o&&o.id!=='lessonModal')closeModal(o.id)}));
