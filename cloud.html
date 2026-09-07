@@ -44,7 +44,7 @@
     @media(max-width:720px){header{padding:10px}.brand small{display:none}.brand h1{font-size:15px}.brand-mark{width:34px;height:34px}.btn{padding:0 10px}.search-box{min-width:155px}.search-box input{width:105px}.bubble-wrap{transform-origin:center}.hint{top:8px}.panel-body{padding-left:14px;padding-right:14px}.panel-head,.tabs{padding-left:14px;padding-right:14px}.cloud-state{display:none}}
     @media(prefers-reduced-motion:reduce){.bubble-wrap{transition:none}.bubble-wrap.up .bubble,.bubble-wrap.down .bubble{animation-duration:.2s}}
 .otp-row{display:grid;grid-template-columns:1fr 132px;gap:8px}.otp-row .btn{white-space:nowrap;padding:0 8px;font-size:13px}
-.remember-row{display:flex;align-items:center;gap:7px;color:#8c8490;font-size:12px}.remember-row input{width:15px;height:15px}.watermark{display:none!important}.stage:before{inset:auto;left:50%;top:50%;width:min(78vh,78vw,760px);height:min(78vh,78vw,760px);transform:translate(-50%,-50%);background-size:100% 100%;opacity:.22}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px;padding:4px;background:#f7f3f6;border-radius:12px}.auth-tabs button{border:0;background:transparent;border-radius:9px;padding:9px;color:#8c8490;cursor:pointer}.auth-tabs button.active{background:#fff;color:#d92734;font-weight:700;box-shadow:0 3px 10px rgba(60,30,40,.08)}.remember-row{display:flex;align-items:center;gap:7px;color:#8c8490;font-size:12px}.remember-row input{width:15px;height:15px}.watermark{display:none!important}.stage:before{inset:auto;left:50%;top:50%;width:min(78vh,78vw,760px);height:min(78vh,78vw,760px);transform:translate(-50%,-50%);background-size:100% 100%;opacity:.22}
 </style>
 </head>
 <body>
@@ -131,11 +131,12 @@
   <div class="auth-logo">✦</div>
   <h2>教师云端空间</h2>
   <p>登录后，班级名单、课堂积分、考勤、作业和成绩只保存到你的账号。其他老师无法读取。</p>
+  <div class="auth-tabs"><button class="active" id="loginTab">登录</button><button id="registerTab">注册账号</button></div>
   <div class="auth-form">
     <input type="email" id="authEmail" placeholder="邮箱，例如 teacher@qq.com" autocomplete="email" />
     <input type="text" id="authEmployeeNo" placeholder="工号，例如 11445" autocomplete="username" inputmode="numeric" />
     <input type="password" id="authPassword" placeholder="密码（至少6位）" autocomplete="current-password" />
-    <div class="otp-row"><input type="text" id="authOtp" placeholder="注册邮箱验证（收到邮件后填写）" autocomplete="one-time-code" inputmode="numeric" maxlength="8" /><button class="btn" id="signUpBtn">注册账号</button></div>
+    <div class="otp-row" id="otpRow"><input type="text" id="authOtp" placeholder="注册邮箱验证（收到邮件后填写）" autocomplete="one-time-code" inputmode="numeric" maxlength="8" /><button class="btn" id="signUpBtn">发送注册验证</button></div>
     <div class="auth-actions"><button class="btn primary" id="signInBtn">登录</button></div>
     <button id="verifyOtpBtn" hidden type="button">完成注册</button>
     <label class="remember-row"><input type="checkbox" id="rememberLogin" /> 记住账号（密码由浏览器安全保存）</label>
@@ -257,10 +258,14 @@
 <script>
 (() => {
   'use strict';
+  let registerMode=false;
   const cfg=window.SUPABASE_CONFIG||{},REDIRECT_URL='https://zcq19991029.github.io/classroom-bubble-score/cloud.html',screen=document.querySelector('#authScreen'),message=document.querySelector('#authMessage'),state=document.querySelector('#cloudState'),accountBtn=document.querySelector('#accountBtn');
   let client=null,user=null,saveTimer=0,loading=false,recoveryMode=false,otpTimer=0;
   const setState=(text,type='')=>{state.textContent=text;state.className='cloud-state '+type};
   const setMessage=text=>message.textContent=text||'';
+  const loginTab=document.querySelector('#loginTab'),registerTab=document.querySelector('#registerTab'),otpRow=document.querySelector('#otpRow');
+  function setAuthMode(isRegister){registerMode=isRegister;loginTab.classList.toggle('active',!isRegister);registerTab.classList.toggle('active',isRegister);otpRow.style.display=isRegister?'grid':'none';document.querySelector('#signInBtn').textContent=isRegister?'注册账号':'登录';document.querySelector('#forgotPasswordBtn').style.display=isRegister?'none':'block';document.querySelector('#rememberLogin').style.display=isRegister?'none':'inline-block'}
+  loginTab.onclick=()=>setAuthMode(false);registerTab.onclick=()=>setAuthMode(true);setAuthMode(false);
   if(!cfg.url||!cfg.anonKey||!window.supabase){setMessage('云端服务尚未配置。请管理员填写 supabase-config.js。');setState('云端未配置','error');return}
   client=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   async function loadCloud(){if(!user)return;loading=true;setState('正在同步','syncing');const {data:row,error}=await client.from('teacher_workspaces').select('payload,updated_at').eq('user_id',user.id).eq('workspace_id','default').maybeSingle();if(error){loading=false;setState('同步失败','error');setMessage(error.message);return}if(row&&row.payload)window.classroomCloudBridge.setData(row.payload);else{const empty=window.classroomCloudBridge.newWorkspace();await client.from('teacher_workspaces').upsert({user_id:user.id,workspace_id:'default',payload:empty,updated_at:new Date().toISOString()},{onConflict:'user_id,workspace_id'})}loading=false;setState('云端已同步');document.querySelector('#saveStatus').textContent='云端已同步';screen.classList.remove('show')}
@@ -280,6 +285,7 @@
   function startResendCooldown(seconds=60){const button=document.querySelector('#resendConfirmBtn');clearInterval(resendTimer);let left=seconds;button.disabled=true;button.textContent=`重新发送验证邮件（${left}秒）`;resendTimer=setInterval(()=>{left-=1;if(left<=0){clearInterval(resendTimer);button.disabled=false;button.textContent='重新发送验证邮件'}else button.textContent=`重新发送验证邮件（${left}秒）`},1000)}
   document.querySelector('#resendConfirmBtn').onclick=sendOtp;
   document.querySelector('#verifyOtpBtn').onclick=async()=>{const {email,employeeNo,password,otp}=otpInputs();if(!email||!employeeNo||!password||!/^[0-9]{6,8}$/.test(otp)){setMessage('请填写邮箱、工号、密码和6～8位验证码');return}setMessage('正在验证注册…');const {error}=await client.auth.verifyOtp({email,token:otp,type:'signup'});if(error){setMessage(friendlyError(error));return}const update=await client.auth.updateUser({password,data:{employee_no:employeeNo}});if(update.error){setMessage(friendlyError(update.error));return}setMessage('注册成功，正在进入教师云端空间…')};
+  const originalAuthClick=document.querySelector('#signInBtn').onclick;document.querySelector('#signInBtn').onclick=async e=>{if(registerMode){if(document.querySelector('#authOtp').value.trim())document.querySelector('#verifyOtpBtn').click();else sendOtp();return}return originalAuthClick(e)};
   accountBtn.onclick=async()=>{if(user){if(confirm(`当前账号：工号 ${user.user_metadata&&user.user_metadata.employee_no||'未设置'}\n\n确定退出并切换账号吗？`))await client.auth.signOut()}else screen.classList.add('show')};
   client.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){recoveryMode=true;document.querySelector('#signInBtn').textContent='保存新密码';screen.classList.add('show');setMessage('请输入新密码，然后点击“保存新密码”')}setTimeout(()=>applySession(session),0)});client.auth.getSession().then(({data})=>applySession(data.session));
 })();
