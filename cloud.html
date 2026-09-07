@@ -43,7 +43,8 @@
     .auth-screen{z-index:500;background:linear-gradient(135deg,rgba(255,247,248,.97),rgba(245,248,255,.97));backdrop-filter:blur(18px)}.auth-screen.show{display:grid}.auth-card{width:min(430px,100%);background:#fff;border-radius:26px;padding:28px;box-shadow:0 30px 90px rgba(46,24,41,.2)}.auth-logo{width:58px;height:58px;border-radius:18px;background:linear-gradient(145deg,#ff5962,#d91925);display:grid;place-items:center;color:#fff;font-size:30px;margin-bottom:18px;box-shadow:0 12px 28px rgba(232,41,50,.25)}.auth-card h2{margin:0 0 7px}.auth-card>p{margin:0 0 20px;color:#8c8490;font-size:13px;line-height:1.65}.auth-form{display:grid;gap:12px}.auth-form input{height:46px;border:1px solid #e5dfe5;border-radius:13px;padding:0 14px;outline:0;user-select:text}.auth-form input:focus{border-color:#ef8e95;box-shadow:0 0 0 3px rgba(232,41,50,.07)}.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.auth-message{min-height:20px;margin-top:11px;color:#d92734;font-size:12px;line-height:1.5}.cloud-state{font-size:11px;color:#71806f;background:#eef8ee;border-radius:99px;padding:6px 10px;white-space:nowrap}.cloud-state.syncing{color:#916d28;background:#fff6df}.cloud-state.error{color:#c22e39;background:#fff0f1}.account-btn{max-width:180px;overflow:hidden;text-overflow:ellipsis}
     @media(max-width:720px){header{padding:10px}.brand small{display:none}.brand h1{font-size:15px}.brand-mark{width:34px;height:34px}.btn{padding:0 10px}.search-box{min-width:155px}.search-box input{width:105px}.bubble-wrap{transform-origin:center}.hint{top:8px}.panel-body{padding-left:14px;padding-right:14px}.panel-head,.tabs{padding-left:14px;padding-right:14px}.cloud-state{display:none}}
     @media(prefers-reduced-motion:reduce){.bubble-wrap{transition:none}.bubble-wrap.up .bubble,.bubble-wrap.down .bubble{animation-duration:.2s}}
-  </style>
+.otp-row{display:grid;grid-template-columns:1fr 132px;gap:8px}.otp-row .btn{white-space:nowrap;padding:0 8px;font-size:13px}
+</style>
 </head>
 <body>
 <div class="app">
@@ -133,11 +134,10 @@
     <input type="email" id="authEmail" placeholder="邮箱，例如 teacher@qq.com" autocomplete="email" />
     <input type="text" id="authEmployeeNo" placeholder="工号，例如 11445" autocomplete="username" inputmode="numeric" />
     <input type="password" id="authPassword" placeholder="密码（至少6位）" autocomplete="current-password" />
-    <input type="text" id="authOtp" placeholder="邮箱验证码（注册时填写）" autocomplete="one-time-code" inputmode="numeric" maxlength="6" />
-    <div class="auth-actions"><button class="btn" id="signUpBtn">发送注册验证码</button><button class="btn primary" id="signInBtn">登录</button></div>
+    <div class="otp-row"><input type="text" id="authOtp" placeholder="验证码" autocomplete="one-time-code" inputmode="numeric" maxlength="6" /><button class="btn" id="signUpBtn">发送验证码</button></div>
+    <div class="auth-actions"><button class="btn" id="verifyOtpBtn">注册</button><button class="btn primary" id="signInBtn">登录</button></div>
     <button class="btn" id="forgotPasswordBtn" style="width:100%">忘记密码？用邮箱找回</button>
-    <button class="btn" id="resendConfirmBtn" style="width:100%">重新发送验证码</button>
-    <button class="btn" id="verifyOtpBtn" style="width:100%">填写验证码并完成注册</button>
+    <button id="resendConfirmBtn" hidden type="button"></button>
   </div>
   <div class="auth-message" id="authMessage"></div>
 </section></div>
