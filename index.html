@@ -41,6 +41,7 @@
     @media(prefers-reduced-motion:reduce){.bubble-wrap{transition:none}.bubble-wrap.up .bubble,.bubble-wrap.down .bubble{animation-duration:.2s}}
 .watermark{display:none!important}.stage:before{inset:auto;left:50%;top:50%;width:min(72vh,72vw,720px);height:min(72vh,72vw,720px);transform:translate(-50%,-50%);background-size:contain;opacity:.22}.stage:after{display:none!important}
   .schedule-fields{display:none!important}
+  .att-row{grid-template-columns:28px minmax(128px,auto) minmax(90px,1fr) auto;column-gap:14px}.att-row>span:nth-child(2){font-variant-numeric:tabular-nums;white-space:nowrap}.att-row>b{white-space:nowrap}.quick-att{grid-template-columns:repeat(4,1fr)}.quick-att .qa-present{background:#25a56a}
   </style>
 </head>
 <body>
@@ -72,7 +73,7 @@
 <div class="overlay" id="attendanceModal"><section class="panel">
   <div class="panel-head"><div><h2>批量考勤</h2><p id="attendanceSubtitle">勾选学生，再设置考勤状态</p></div><button class="close" data-close="attendanceModal">×</button></div>
   <div class="panel-body">
-    <div class="attendance-tools"><button class="att-mode active" data-attmode="缺勤">缺勤</button><button class="att-mode" data-attmode="请假">请假</button><button class="att-mode" data-attmode="旷课">旷课</button><input class="att-search" id="attendanceSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><button class="btn" id="selectVisible">全选当前</button></div>
+    <div class="attendance-tools"><button class="att-mode active" data-attmode="签到">签到</button><button class="att-mode" data-attmode="缺勤">缺勤</button><button class="att-mode" data-attmode="请假">请假</button><button class="att-mode" data-attmode="旷课">旷课</button><input class="att-search" id="attendanceSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><button class="btn" id="selectVisible">全选当前</button></div>
     <div class="att-list" id="attendanceList"></div>
     <div class="actions" style="margin-top:14px"><button class="btn" id="clearAttendance">清除所选标记</button><button class="btn primary" id="saveAttendance">保存考勤</button></div>
   </div>
@@ -80,7 +81,7 @@
 
 <div class="overlay" id="quickAttendanceModal"><section class="panel small">
   <div class="panel-head"><div><h2 id="quickAttendanceName">考勤标记</h2><p>选择该学生本节课的状态</p></div><button class="close" data-close="quickAttendanceModal">×</button></div>
-  <div class="form"><div class="quick-att"><button class="qa-absent" data-quickatt="缺勤">缺勤</button><button class="qa-leave" data-quickatt="请假">请假</button><button class="qa-truant" data-quickatt="旷课">旷课</button></div><div class="actions"><button class="btn" id="quickClearAttendance">清除标记</button></div></div>
+  <div class="form"><div class="quick-att"><button class="qa-present" data-quickatt="签到">签到</button><button class="qa-absent" data-quickatt="缺勤">缺勤</button><button class="qa-leave" data-quickatt="请假">请假</button><button class="qa-truant" data-quickatt="旷课">旷课</button></div><div class="actions"><button class="btn" id="quickClearAttendance">清除标记</button></div></div>
 </section></div>
 
 <div class="overlay" id="importModal"><section class="panel small">
@@ -133,7 +134,7 @@
   const DEFAULT_SETTINGS={absenceDeduction:3,leaveDeduction:0,truantDeduction:5,passScore:60};
   const fresh=()=>{const roster=PRESET_STUDENTS.length?PRESET_STUDENTS:demoNames.map((name,i)=>({studentNo:`2600000${String(i+1).padStart(2,'0')}`,name}));return {version:6,className:PRESET_CLASS||'公开演示班级',students:roster.map((s,i)=>({id:crypto.randomUUID(),studentNo:String(s.studentNo),name:s.name,score:0,emoji:EMOJIS[i%EMOJIS.length]})),logs:[],attendance:[],homework:[],examScores:{},settings:{...DEFAULT_SETTINGS},updatedAt:Date.now()}};
   let recoveryNotice='';
-  let data=load(), nodes=[], running=true, customStudentId=null, attendanceStudentId=null, homeworkStudentId=null, editLogId=null, attendanceMode='缺勤', currentLesson='', selectedLesson='', lastTime=performance.now();
+  let data=load(), nodes=[], running=true, customStudentId=null, attendanceStudentId=null, homeworkStudentId=null, editLogId=null, attendanceMode='签到', currentLesson='', selectedLesson='', lastTime=performance.now();
   const stage=document.querySelector('#stage'), toastEl=document.querySelector('#toast');
   data.logs=Array.isArray(data.logs)?data.logs:[];data.attendance=Array.isArray(data.attendance)?data.attendance:[];data.homework=Array.isArray(data.homework)?data.homework:[];data.examScores=data.examScores&&typeof data.examScores==='object'?data.examScores:{};data.settings={...DEFAULT_SETTINGS,...(data.settings||{})};
   function corruptRoster(students){if(!Array.isArray(students)||!students.length)return false;if(students.length>120)return true;let bad=0;for(const s of students){const n=String(s&&s.name||'');const odd=(n.match(/[^\u3400-\u9fffA-Za-z·•\s]/g)||[]).length;if(!n||n.length>18||/[�□]/.test(n)||/[\u0000-\u001f\ufffd]/.test(n)||odd>Math.max(3,n.length*.45))bad++}return bad/students.length>.18}
@@ -228,7 +229,7 @@
   lessonGrid.addEventListener('pointermove',e=>{if(dragging)lessonGrid.scrollTop=dragTop-(e.clientY-dragY)});
   lessonGrid.addEventListener('pointerup',()=>dragging=false);lessonGrid.addEventListener('pointercancel',()=>dragging=false);
   document.querySelector('#confirmLesson').onclick=()=>{const lesson=selectedLesson;if(!lesson){toast('请先滚动选择课次');return}const week=Number(scheduleWeek.value||1),day=scheduleDay.value,period=schedulePeriod.value,course=scheduleCourse.value.trim();currentLesson=`第${period}节课 · 第${week}周${day}${course?' · '+course:''}`;data.lastLesson=currentLesson;document.querySelector('#lessonBadge').textContent=currentLesson;closeModal('lessonModal');renderDuty();updateAttendanceBadges();save();if(recoveryNotice){setTimeout(()=>{document.querySelector('#classNameInput').value='';openModal('importModal');toast(recoveryNotice)},180)}else toast(`${currentLesson}，开始记录`)};
-  document.querySelector('#lessonBadge').onclick=()=>{const lesson=/^第(?:[1-9]|1\d|2[0-4])节课$/.test(currentLesson)?currentLesson:'第1节课';openModal('lessonModal');setTimeout(()=>selectLesson(lessonButtons.find(x=>x.dataset.lesson===lesson),true),40)};
+  document.querySelector('#lessonBadge').onclick=()=>{buildLessonOptions();openModal('lessonModal');setTimeout(()=>selectLesson(lessonButtons.find(x=>x.dataset.lesson===selectedLesson)||lessonButtons[0],true),40)};
   window.addEventListener('resize',()=>{const W=stage.clientWidth,H=stage.clientHeight;nodes.forEach(n=>{n.x=Math.min(n.x,W-112);n.y=Math.min(n.y,H-142)})});
   document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('mousedown',e=>{if(e.target===o&&o.id!=='lessonModal')closeModal(o.id)}));
   render();selectedLesson=/^第(?:[1-9]|1\d|2[0-4])节课$/.test(data.lastLesson||'')?data.lastLesson:'第1节课';selectLesson(lessonButtons.find(x=>x.dataset.lesson===selectedLesson),false);openModal('lessonModal');setTimeout(()=>selectLesson(lessonButtons.find(x=>x.dataset.lesson===selectedLesson),true),60);requestAnimationFrame(tick);
@@ -240,7 +241,7 @@
   function refreshClassWorkspaces(){if(!classSwitcher)return;const names=Object.keys(classWorkspaces);classSwitcher.innerHTML=names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')||'<option value="">暂无班级</option>';classSwitcher.value=data.className||''}
   function persistClassWorkspace(){if(!data||!data.className)return;classWorkspaces[data.className]=data;localStorage.setItem(classStoreKey,JSON.stringify(classWorkspaces))}
   refreshClassWorkspaces();
-  classSwitcher&&classSwitcher.addEventListener('change',()=>{const name=classSwitcher.value;if(!name||name===data.className)return;persistClassWorkspace();const next=classWorkspaces[name];if(!next)return;data=JSON.parse(JSON.stringify(next));render();refreshClassWorkspaces();toast(`已切换到 ${name}`)});
+  classSwitcher&&classSwitcher.addEventListener('change',()=>{const name=classSwitcher.value;if(!name||name===data.className)return;persistClassWorkspace();const next=classWorkspaces[name];if(!next)return;data=JSON.parse(JSON.stringify(next));render();buildLessonOptions();currentLesson=selectedLesson||'';document.querySelector('#lessonBadge').textContent=currentLesson||'选择课节';refreshClassWorkspaces();toast(`已切换到 ${name}`)});
   setInterval(()=>{persistClassWorkspace();refreshClassWorkspaces()},1000);
   window.addEventListener('beforeunload',persistClassWorkspace);
   {const startBtn=document.querySelector('#confirmLesson');startBtn.type='button';startBtn.onclick=null;startBtn.onpointerdown=e=>{e.preventDefault();e.stopPropagation();const active=lessonGrid.querySelector('.lesson-choice.active'),lesson=active?.dataset.lesson||selectedLesson||lessonButtons[0]?.dataset.lesson;if(!lesson){toast('请先选择课次');return}selectedLesson=currentLesson=lesson;data.lastLesson=lesson;document.querySelector('#lessonBadge').textContent=lesson;document.querySelector('#lessonModal').classList.remove('show');running=true;lastTime=performance.now();try{renderDuty();updateAttendanceBadges();save()}catch(err){console.error(err)}toast(`${lesson}，开始记录`)}};
