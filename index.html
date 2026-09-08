@@ -244,7 +244,7 @@
   setInterval(()=>{persistClassWorkspace();refreshClassWorkspaces()},1000);
   window.addEventListener('beforeunload',persistClassWorkspace);
 })();
-  document.querySelector('#confirmLesson').onclick=()=>{if(!selectedLesson){toast('请先滚动选择课次');return}currentLesson=selectedLesson;data.lastLesson=currentLesson;document.querySelector('#lessonBadge').textContent=currentLesson;closeModal('lessonModal');renderDuty();updateAttendanceBadges();save();toast(`${currentLesson}，开始记录`)};
+  document.querySelector('#confirmLesson').onclick=()=>{const i=Math.max(0,Math.min(lessonButtons.length-1,Math.round(lessonGrid.scrollTop/54))),lesson=lessonButtons[i]?.dataset.lesson||selectedLesson;if(!lesson){toast('请先滚动选择课次');return}selectedLesson=currentLesson=lesson;data.lastLesson=currentLesson;document.querySelector('#lessonBadge').textContent=currentLesson;closeModal('lessonModal');renderDuty();updateAttendanceBadges();save();toast(`${currentLesson}，开始记录`)};
   buildLessonOptions();document.querySelector('#lessonBadge').onclick=()=>{buildLessonOptions();openModal('lessonModal');setTimeout(()=>selectLesson(lessonButtons.find(x=>x.dataset.lesson===selectedLesson)||lessonButtons[0],true),40)};
 </script>
 </body>
