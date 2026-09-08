@@ -253,12 +253,12 @@
   document.querySelector('#fullscreenBtn').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
   const scheduleWeek=document.querySelector('#scheduleWeek'),scheduleDay=document.querySelector('#scheduleDay'),schedulePeriod=document.querySelector('#schedulePeriod'),scheduleCourse=document.querySelector('#scheduleCourse');
   for(let w=1;w<=20;w++)scheduleWeek.insertAdjacentHTML('beforeend',`<option value="${w}">${w}</option>`);
-  const lessonGrid=document.querySelector('#lessonGrid'),weekDays=['星期一','星期二','星期三','星期四','星期五','星期六','星期日'],mergedPeriods=['1-2','1-4','3-4','5-6','5-8','7-8','9-10','9-12','11-12','13-14','15-16','17-18','19-20','21-22','23-24'];
-  lessonGrid.innerHTML=Array.from({length:20},(_,wi)=>weekDays.flatMap(day=>mergedPeriods.map(period=>`<button class="lesson-choice" data-lesson="第${period}节课 · 第${wi+1}周 · ${day}">第${period}节课 · 第${wi+1}周 · ${day}</button>`)).join('')).join('');
-  const lessonButtons=[...lessonGrid.querySelectorAll('[data-lesson]')];
+  const lessonGrid=document.querySelector('#lessonGrid');let lessonButtons=[];
+  function buildLessonOptions(){const className=String(data.className||''),only2=/2班|二班/.test(className),only3=/3班|三班/.test(className),entries=[];for(let week=1;week<=16;week++){const add=(classLabel,dayOffset,day,period)=>{const d=new Date(2026,8,1+(week-1)*7+dayOffset),date=`${d.getMonth()+1}月${d.getDate()}日`,lesson=`第${period}节课 · 第${week}周 · ${date}${day} · ${classLabel} · 单片机技术及应用`;entries.push({date:d.getTime(),period:Number(period.split('-')[0]),lesson})};if(!only2){add('机电3班',0,'星期二','1-2');if(week%2===0)add('机电3班',2,'星期四','3-4')}if(!only3){add('机电2班',1,'星期三','1-2');if(week%2===0)add('机电2班',1,'星期三','3-4')}}entries.sort((a,b)=>a.date-b.date||a.period-b.period);lessonGrid.innerHTML=entries.map(x=>`<button class="lesson-choice" data-lesson="${x.lesson}">${x.lesson}</button>`).join('');lessonButtons=[...lessonGrid.querySelectorAll('[data-lesson]')];lessonButtons.forEach(b=>b.onclick=e=>{e.preventDefault();selectLesson(b,false);setTimeout(()=>lessonGrid.scrollTop=lessonButtons.indexOf(b)*54,30)});selectedLesson=lessonButtons.some(b=>b.dataset.lesson===data.lastLesson)?data.lastLesson:lessonButtons[0]?.dataset.lesson;selectLesson(lessonButtons.find(b=>b.dataset.lesson===selectedLesson),false)}
+  buildLessonOptions();
   let wheelTimer=0,dragY=0,dragTop=0,dragging=false;
   function selectLesson(button,scroll=true){if(!button)return;const index=lessonButtons.indexOf(button);selectedLesson=button.dataset.lesson;lessonButtons.forEach(x=>x.classList.toggle('active',x===button));if(scroll)lessonGrid.scrollTop=index*54}
-  lessonButtons.forEach(b=>b.onclick=e=>{e.preventDefault();selectLesson(b,false);setTimeout(()=>lessonGrid.scrollTop=lessonButtons.indexOf(b)*54,30)});
+  
   lessonGrid.addEventListener('scroll',()=>{clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>{const i=Math.max(0,Math.min(lessonButtons.length-1,Math.round(lessonGrid.scrollTop/54)));selectLesson(lessonButtons[i],false)},110)});
   lessonGrid.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.target===lessonGrid){dragging=true;dragY=e.clientY;dragTop=lessonGrid.scrollTop;lessonGrid.setPointerCapture(e.pointerId)}});
   lessonGrid.addEventListener('pointermove',e=>{if(dragging)lessonGrid.scrollTop=dragTop-(e.clientY-dragY)});
@@ -271,6 +271,7 @@
   render();selectedLesson=/^第(?:[1-9]|1\d|2[0-4])节课$/.test(data.lastLesson||'')?data.lastLesson:'第1节课';selectLesson(lessonButtons.find(x=>x.dataset.lesson===selectedLesson),false);requestAnimationFrame(tick);
 })();
   document.querySelector('#confirmLesson').onclick=()=>{if(!selectedLesson){toast('请先滚动选择课次');return}currentLesson=selectedLesson;data.lastLesson=currentLesson;document.querySelector('#lessonBadge').textContent=currentLesson;closeModal('lessonModal');renderDuty();updateAttendanceBadges();save();toast(`${currentLesson}，开始记录`)};
+  buildLessonOptions();document.querySelector('#lessonBadge').onclick=()=>{buildLessonOptions();openModal('lessonModal');setTimeout(()=>selectLesson(lessonButtons.find(x=>x.dataset.lesson===selectedLesson)||lessonButtons[0],true),40)};
 </script>
 <script>
 (() => {
