@@ -246,6 +246,7 @@
 })();
   document.querySelector('#confirmLesson').onclick=()=>{const i=Math.max(0,Math.min(lessonButtons.length-1,Math.round(lessonGrid.scrollTop/54))),lesson=lessonButtons[i]?.dataset.lesson||selectedLesson;if(!lesson){toast('请先滚动选择课次');return}selectedLesson=currentLesson=lesson;data.lastLesson=currentLesson;document.querySelector('#lessonBadge').textContent=currentLesson;closeModal('lessonModal');renderDuty();updateAttendanceBadges();save();toast(`${currentLesson}，开始记录`)};
   buildLessonOptions();document.querySelector('#lessonBadge').onclick=()=>{buildLessonOptions();openModal('lessonModal');setTimeout(()=>selectLesson(lessonButtons.find(x=>x.dataset.lesson===selectedLesson)||lessonButtons[0],true),40)};
+  {const startBtn=document.querySelector('#confirmLesson');startBtn.type='button';startBtn.onclick=null;startBtn.onpointerdown=e=>{e.preventDefault();e.stopPropagation();const active=lessonGrid.querySelector('.lesson-choice.active'),lesson=active?.dataset.lesson||selectedLesson||lessonButtons[0]?.dataset.lesson;if(!lesson){toast('请先选择课次');return}selectedLesson=currentLesson=lesson;data.lastLesson=lesson;document.querySelector('#lessonBadge').textContent=lesson;document.querySelector('#lessonModal').classList.remove('show');running=true;lastTime=performance.now();try{renderDuty();updateAttendanceBadges();save()}catch(err){console.error(err)}toast(`${lesson}，开始记录`)}};
 </script>
 </body>
 </html>
