@@ -62,14 +62,14 @@
   .score-view-toggle:before{content:"";position:absolute;z-index:-1;left:3px;top:3px;width:calc(50% - 4px);height:calc(100% - 6px);border-radius:9px;background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(255,245,247,.68));border:1px solid rgba(255,255,255,.9);box-shadow:inset 0 1px 1px rgba(255,255,255,1),0 4px 12px rgba(179,72,92,.16);transform:translateX(calc(100% + 2px));transition:transform .42s cubic-bezier(.2,.9,.2,1.15),box-shadow .25s}
   .score-view-toggle.lesson-active:before{transform:translateX(0)}
   .score-view-toggle:after{content:"";position:absolute;inset:-70% -25%;z-index:2;pointer-events:none;background:linear-gradient(110deg,transparent 38%,rgba(255,255,255,.58) 48%,transparent 58%);transform:translateX(-60%);transition:transform .65s ease}
-  .score-view-toggle:hover:after{transform:translateX(60%)}.score-view-toggle:active{transform:scale(.96)}.score-view-toggle{width:88px!important;min-width:88px!important;flex:0 0 88px}.score-view-toggle span,.score-view-toggle span.active{position:relative;z-index:1;background:transparent!important;box-shadow:none!important;font-weight:700}.score-view-toggle span.active{color:#d92734;text-shadow:0 1px 0 rgba(255,255,255,.9)}
+  .score-view-toggle:hover:after{transform:translateX(60%)}.score-view-toggle:active{filter:brightness(.98)}.score-view-toggle{width:88px!important;min-width:88px!important;flex:0 0 88px;transform:none!important}.score-view-toggle span,.score-view-toggle span.active{position:relative;z-index:1;background:transparent!important;box-shadow:none!important;font-weight:700}.score-view-toggle span.active{color:#d92734;text-shadow:0 1px 0 rgba(255,255,255,.9)}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-09-15 15:11</button></small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-09-15 15:21</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -203,7 +203,7 @@
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20260915-1511',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20260915-1521',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{
