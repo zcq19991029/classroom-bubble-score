@@ -62,14 +62,14 @@
   .score-view-toggle:before{content:"";position:absolute;z-index:-1;left:3px;top:3px;width:calc(50% - 4px);height:calc(100% - 6px);border-radius:9px;background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(255,245,247,.68));border:1px solid rgba(255,255,255,.9);box-shadow:inset 0 1px 1px rgba(255,255,255,1),0 4px 12px rgba(179,72,92,.16);transform:translateX(calc(100% + 2px));transition:transform .42s cubic-bezier(.2,.9,.2,1.15),box-shadow .25s}
   .score-view-toggle.lesson-active:before{transform:translateX(0)}
   .score-view-toggle:after{content:"";position:absolute;inset:-70% -25%;z-index:2;pointer-events:none;background:linear-gradient(110deg,transparent 38%,rgba(255,255,255,.58) 48%,transparent 58%);transform:translateX(-60%);transition:transform .65s ease}
-  .score-view-toggle:hover:after{transform:translateX(60%)}.score-view-toggle:active{transform:scale(.96)}.score-view-toggle span{position:relative;z-index:1;background:transparent!important;box-shadow:none!important}.score-view-toggle span.active{color:#d92734;text-shadow:0 1px 0 rgba(255,255,255,.9)}
+  .score-view-toggle:hover:after{transform:translateX(60%)}.score-view-toggle:active{transform:scale(.96)}.score-view-toggle{width:88px!important;min-width:88px!important;flex:0 0 88px}.score-view-toggle span,.score-view-toggle span.active{position:relative;z-index:1;background:transparent!important;box-shadow:none!important;font-weight:700}.score-view-toggle span.active{color:#d92734;text-shadow:0 1px 0 rgba(255,255,255,.9)}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-09-15 15:07</button></small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-09-15 15:11</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -203,7 +203,7 @@
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20260915-1507',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20260915-1511',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{
@@ -431,7 +431,7 @@
   function fillProfileModal(){const meta=accountMeta();document.querySelector('#profileNameInput').value=meta.display_name||'';document.querySelector('#profileAvatarInput').value=meta.avatar_text||'';refreshProfilePreview()}
   async function applySession(session){user=session&&session.user||null;if(!user){screen.classList.add('show');cloudPayload={version:2,activeClass:'',classes:{}};renderClassSwitcher();renderAccountButton();setState('等待登录');return}keepCurrentClass(window.classroomCloudBridge.getData());renderClassSwitcher();renderAccountButton();if(recoveryMode){screen.classList.add('show');return}screen.classList.remove('show');setMessage('');await loadCloud()}
   async function resolveLoginEmail(identifier){if(emailPattern.test(identifier))return identifier;const {data,error}=await client.rpc('resolve_teacher_email',{p_employee_no:identifier});if(error)throw error;return data||null}
-  const remembered=JSON.parse(localStorage.getItem('teacherCloudRemember')||'null');if(remembered){authEmail.value=remembered.identifier||remembered.email||remembered.employeeNo||'';rememberLogin.checked=true;if(navigator.credentials&&window.PasswordCredential)navigator.credentials.get({password:true,mediation:'optional'}).then(credential=>{if(credential&&credential.password){authEmail.value=credential.id||authEmail.value;authPassword.value=credential.password}}).catch(()=>{})}
+  const remembered=JSON.parse(localStorage.getItem('teacherCloudRemember')||'null');if(remembered){authEmail.value=remembered.identifier||remembered.email||remembered.employeeNo||'';rememberLogin.checked=true}
   function otpInputs(){return {email:authEmail.value.trim(),employeeNo:authEmployeeNo.value.trim(),password:authPassword.value,otp:authOtp.value.trim()}}
   function startOtpCooldown(seconds=60){clearInterval(otpTimer);let left=seconds;localStorage.setItem('teacherCloudOtpAt',String(Date.now()+left*1000));signUpBtn.disabled=true;signUpBtn.textContent=`已发送（${left}秒）`;otpTimer=setInterval(()=>{left=Math.max(0,Math.ceil((Number(localStorage.getItem('teacherCloudOtpAt'))-Date.now())/1000));if(left<=0){clearInterval(otpTimer);signUpBtn.disabled=false;signUpBtn.textContent='重新发送'}else signUpBtn.textContent=`已发送（${left}秒）`},1000)}
   async function sendSignupEmail(){const {email,employeeNo,password}=otpInputs();if(!emailPattern.test(email)){setMessage('注册需要填写邮箱');return}if(!/^[A-Za-z0-9_-]{3,24}$/.test(employeeNo)){setMessage('请输入3～24位工号');return}if(password.length<6){setMessage('注册密码至少需要6位');return}const remaining=Math.ceil((Number(localStorage.getItem('teacherCloudOtpAt')||0)-Date.now())/1000);if(remaining>0){startOtpCooldown(remaining);setMessage(`请等待 ${remaining} 秒后再重新发送`);return}setMessage('正在发送邮箱确认邮件…');let result=await client.auth.signUp({email,password,options:{emailRedirectTo:REDIRECT_URL,data:{employee_no:employeeNo}}});if(result.error&&/already registered|already exists/i.test(result.error.message||'')){result=await client.auth.resend({type:'signup',email,options:{emailRedirectTo:REDIRECT_URL}})}if(result.error)setMessage(friendlyError(result.error));else{startOtpCooldown(60);setMessage('邮件已发送。把邮件里的 6～8 位数字填回来，再点“完成注册”。');updatePrimaryButton()}}
