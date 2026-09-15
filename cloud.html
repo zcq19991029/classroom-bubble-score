@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>课堂气泡赋分平台 · 教师云端版</title>
   <link rel="icon" href="data:," />
   <style>
@@ -15,7 +18,7 @@
     .watermark{position:fixed;left:50%;top:48%;width:min(58vw,650px);aspect-ratio:1;transform:translate(-50%,-50%);border:1.8vw solid rgba(235,58,67,.035);border-radius:50%;z-index:-2}
     .watermark:after{content:"+";position:absolute;inset:12%;display:grid;place-items:center;color:rgba(235,58,67,.026);font:bold 21vw/1 Arial}
     header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:rgba(255,255,255,.76);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.9);box-shadow:0 8px 34px rgba(71,34,52,.07);z-index:20}
-    .brand{display:flex;align-items:center;gap:11px;min-width:max-content}.brand-mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#ff5962,#d91925);box-shadow:0 8px 22px rgba(232,41,50,.25);display:grid;place-items:center;color:#fff;font-size:21px}.brand h1{font-size:17px;margin:0}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+    .brand{display:flex;align-items:center;gap:11px;min-width:max-content}.brand-mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#ff5962,#d91925);box-shadow:0 8px 22px rgba(232,41,50,.25);display:grid;place-items:center;color:#fff;font-size:21px}.brand h1{font-size:17px;margin:0}.brand small{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:10px;margin-top:2px}.build-version{color:#c42a35;background:#fff0f2;border-radius:6px;padding:1px 4px;cursor:pointer;white-space:nowrap}
     .toolbar{display:flex;align-items:center;gap:8px;margin-left:auto;overflow-x:auto;scrollbar-width:none}.toolbar::-webkit-scrollbar{display:none}.search-box{height:38px;min-width:190px;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid rgba(50,35,50,.09);border-radius:12px;padding:0 10px}.search-box:focus-within{border-color:#ef8e95;box-shadow:0 0 0 3px rgba(232,41,50,.07)}.search-box input{width:135px;border:0;outline:0;background:transparent;color:#463b47}.search-box span{font-size:11px;color:#a196a1;white-space:nowrap}.duty-bar{display:none;align-items:center;justify-content:center;gap:9px;padding:7px 16px;background:rgba(255,246,247,.86);border-bottom:1px solid rgba(232,41,50,.09);backdrop-filter:blur(10px);z-index:15}.duty-bar.show{display:flex}.duty-title{font-size:12px;font-weight:800;color:var(--red);margin-right:4px}.duty-person{display:flex;align-items:center;gap:5px;background:#fff;padding:6px 10px;border-radius:99px;box-shadow:0 3px 10px rgba(64,38,52,.06);font-size:12px;font-weight:700}.duty-person b{color:var(--red)}
     .btn{height:38px;border:1px solid rgba(50,35,50,.09);background:rgba(255,255,255,.9);border-radius:12px;padding:0 13px;color:#4f4451;white-space:nowrap;box-shadow:0 4px 12px rgba(45,25,38,.04);transition:.2s}.btn:hover{transform:translateY(-1px);border-color:rgba(232,41,50,.25)}.btn.primary{background:var(--red);color:#fff;border:0;box-shadow:0 8px 20px rgba(232,41,50,.2)}
     .stage{position:relative;overflow:hidden;min-height:0;background:radial-gradient(ellipse at 50% 94%,rgba(255,255,255,.98) 0 10%,rgba(255,237,240,.52) 42%,transparent 68%),linear-gradient(135deg,#fff 0%,#fff7f8 48%,#f8fbff 100%)}.stage:before{content:"";position:absolute;inset:2%;z-index:0;background:url('校徽背景.png') center/contain no-repeat;opacity:.26;filter:saturate(.82) drop-shadow(0 18px 38px rgba(213,34,47,.12));pointer-events:none}.stage:after{content:"";position:absolute;left:4%;right:4%;bottom:4%;height:18%;z-index:1;background:radial-gradient(ellipse,rgba(255,255,255,.96),rgba(255,225,232,.25) 42%,transparent 70%);filter:blur(9px);pointer-events:none}.hint{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:12;padding:8px 14px;border-radius:99px;background:rgba(255,255,255,.68);backdrop-filter:blur(12px);color:#7c707c;font-size:12px;box-shadow:0 6px 20px rgba(55,34,48,.06);pointer-events:none;transition:.5s}.hint.hide{opacity:0;transform:translate(-50%,-8px)}
@@ -61,7 +64,7 @@
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small id="saveStatus">已自动保存</small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-09-15 14:13</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -195,6 +198,16 @@
 <script>
 (() => {
   'use strict';
+  const BUILD_ID='20260915-1413',buildVersion=document.querySelector('#buildVersion');
+  if(buildVersion){
+    buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
+    fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{
+      if(latest.build&&latest.build!==BUILD_ID&&!sessionStorage.getItem(`classroom-build-${latest.build}`)){
+        sessionStorage.setItem(`classroom-build-${latest.build}`,'1');
+        location.replace(`${location.pathname}?v=${encodeURIComponent(latest.build)}`);
+      }
+    }).catch(()=>{});
+  }
   const APP_ID='cloud_teacher',PRESET_CLASS='',PRESET_STUDENTS=[];
   const KEY='classBubbleScore_v5_'+APP_ID,LEGACY_KEY='classBubbleScore_v4';
   const EMOJIS=['😊','😎','🤩','🥳','🦊','🐼','🐯','🐰','🐸','🐵','🦁','🐨','🐙','🐳','🦄','🐧','🐱','🐶','🌟','🍀','🚀','🎨','🎵','⚽'];
@@ -392,6 +405,7 @@
   async function flushCloud(){if(!user||loading){syncPending=true;return}syncPending=true;if(syncInFlight)return;syncInFlight=true;clearTimeout(syncRetryTimer);try{while(syncPending&&user&&!loading){syncPending=false;setState('正在保存','syncing');const {error}=await writeCloudPayload();if(error){const detail=detailedError(error);syncPending=true;setState('云端保存失败','error',detail);setMessage('云端保存失败：'+detail);syncRetryTimer=setTimeout(flushCloud,5000);break}setState('云端已保存');document.querySelector('#saveStatus').textContent=`云端已保存 · ${cloudPayload.activeClass} · ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`}}finally{syncInFlight=false}}
   async function switchCloudClass(name){if(!name||!cloudPayload.classes[name]||name===cloudPayload.activeClass)return;keepCurrentClass(window.classroomCloudBridge.getData());cloudPayload.activeClass=name;loading=true;window.classroomCloudBridge.setData(clone(cloudPayload.classes[name]));loading=false;renderClassSwitcher();setState('正在保存','syncing');const {error}=await writeCloudPayload();setState(error?'云端保存失败':'云端已同步',error?'error':'');if(error)setMessage(error.message);else document.querySelector('#saveStatus').textContent=`云端已同步 · ${name}`}
   classSwitcher&&classSwitcher.addEventListener('change',()=>switchCloudClass(classSwitcher.value));
+  setInterval(()=>{if(classSwitcher&&(!classSwitcher.options.length||!classSwitcher.value))renderClassSwitcher()},1000);
   async function loadCloud(){if(!user)return;loading=true;setState('正在同步','syncing');try{const {data:row,error}=await client.from('teacher_workspaces').select('payload,updated_at').eq('user_id',user.id).eq('workspace_id','default').maybeSingle();if(error)throw error;cloudPayload=normalizeCloudPayload(row&&row.payload);renderClassSwitcher();window.classroomCloudBridge.setData(clone(cloudPayload.classes[cloudPayload.activeClass]));if(!row||!row.payload||!row.payload.classes){const saved=await writeCloudPayload();if(saved.error)throw saved.error}setState('云端已同步');document.querySelector('#saveStatus').textContent=`云端已同步 · ${cloudPayload.activeClass}`}catch(error){const detail=detailedError(error);keepCurrentClass(window.classroomCloudBridge.getData());renderClassSwitcher();setState('同步失败，使用本机缓存','error',detail);setMessage('云端数据读取失败：'+detail);toast('同步失败，已保留并显示本机班级；点击红色状态查看原因')}finally{loading=false}}
   window.cloudDataChanged=data=>{if(!user||loading)return;keepCurrentClass(data);syncPending=true;clearTimeout(saveTimer);setState('正在保存','syncing');saveTimer=setTimeout(flushCloud,120)};
   document.querySelector('#cloudSyncBtn').onclick=async event=>{const button=event.currentTarget;if(!user){setMessage('请先登录');screen.classList.add('show');return}if(loading){toast('正在读取云端数据，请稍候再点');return}const oldText=button.textContent;button.disabled=true;button.textContent='同步中…';try{keepCurrentClass(window.classroomCloudBridge.getData());syncPending=true;await flushCloud();if(syncPending)toast('同步失败，系统将在5秒后自动重试');else toast('同步完成，当前数据已写入 Supabase 云端')}catch(error){setState('云端保存失败','error');setMessage('云端保存失败：'+friendlyError(error));toast('同步失败，请检查网络')}finally{button.disabled=false;button.textContent=oldText}};
