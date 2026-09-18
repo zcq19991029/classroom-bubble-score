@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff7f8"/><stop offset="1" stop-color="#f3f7ff"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#7b4055" flood-opacity=".14"/></filter></defs>
+  <rect width="1200" height="520" rx="28" fill="url(#bg)"/>
+  <text x="56" y="72" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="34" font-weight="700" fill="#3d3340">课堂气泡赋分平台</text>
+  <text x="56" y="108" font-family="Arial,'Microsoft YaHei',sans-serif" font-size="17" fill="#837784">课堂现场记录 · 考勤管理 · 云端同步 · 成绩复核</text>
+  <g filter="url(#shadow)">
+    <rect x="56" y="150" width="254" height="290" rx="22" fill="#fff"/><rect x="336" y="150" width="254" height="290" rx="22" fill="#fff"/><rect x="616" y="150" width="254" height="290" rx="22" fill="#fff"/><rect x="896" y="150" width="248" height="290" rx="22" fill="#fff"/>
+  </g>
+  <g font-family="Arial,'Microsoft YaHei',sans-serif">
+    <circle cx="183" cy="218" r="42" fill="#ffe0e4"/><text x="183" y="232" text-anchor="middle" font-size="38">💬</text><text x="82" y="296" font-size="22" font-weight="700" fill="#d92734">气泡加分</text><text x="82" y="330" font-size="15" fill="#766977">单击 +1 · 双击撤销</text><text x="82" y="358" font-size="15" fill="#766977">搜索后仅显示匹配学生</text><text x="82" y="386" font-size="15" fill="#766977">拖动、碰撞、自然漂浮</text>
+    <circle cx="463" cy="218" r="42" fill="#e4f1ff"/><text x="463" y="232" text-anchor="middle" font-size="38">✓</text><text x="362" y="296" font-size="22" font-weight="700" fill="#356bb3">当节考勤</text><text x="362" y="330" font-size="15" fill="#766977">勾选到课，异常单独标记</text><text x="362" y="358" font-size="15" fill="#766977">批量操作 · 个人修改</text><text x="362" y="386" font-size="15" fill="#766977">迟到 / 旷课按比例扣分</text>
+    <circle cx="743" cy="218" r="42" fill="#e8f7ec"/><text x="743" y="232" text-anchor="middle" font-size="38">☁</text><text x="642" y="296" font-size="22" font-weight="700" fill="#2a8a55">教师云端</text><text x="642" y="330" font-size="15" fill="#766977">多班级独立保存</text><text x="642" y="358" font-size="15" fill="#766977">电脑 / 平板同步</text><text x="642" y="386" font-size="15" fill="#766977">账号隔离，数据不公开</text>
+    <circle cx="1020" cy="218" r="42" fill="#fff0d7"/><text x="1020" y="232" text-anchor="middle" font-size="38">▤</text><text x="922" y="296" font-size="22" font-weight="700" fill="#bd7620">成绩复核</text><text x="922" y="330" font-size="15" fill="#766977">平时分 80 + 考勤 20</text><text x="922" y="358" font-size="15" fill="#766977">排名、日志、撤销</text><text x="922" y="386" font-size="15" fill="#766977">课程进度与 JSON 备份</text>
+  </g>
+</svg>
