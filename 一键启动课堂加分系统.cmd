@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set "CLASSROOM_URL=https://zcq19991029.github.io/classroom-bubble-score/cloud.html"
+set "CLASSROOM_URL=https://classroom-bubble-score.cuddly-stork-1579.chatgpt.site/"
 if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" (
   start "" "%ProgramFiles%\Google\Chrome\Application\chrome.exe" --start-maximized "%CLASSROOM_URL%"
   exit /b 0

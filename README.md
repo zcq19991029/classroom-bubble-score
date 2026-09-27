@@ -4,8 +4,8 @@
 
 ## 立即体验
 
-- [公开演示版](https://zcq19991029.github.io/classroom-bubble-score/)：使用虚构名单，无需登录。
-- [教师云端版](https://zcq19991029.github.io/classroom-bubble-score/cloud.html)：登录后按账号保存多个班级，支持跨电脑、平板同步。
+- [教师云端版（Sites）](https://classroom-bubble-score.cuddly-stork-1579.chatgpt.site/)：登录后按账号保存多个班级，支持跨电脑、平板同步。
+- [GitHub 源码仓库](https://github.com/zcq19991029/classroom-bubble-score)：用于保存和发布源码，不承担线上网站托管。
 
 ## 当前版本功能
 
@@ -66,7 +66,7 @@
 | 跨设备同步 | 需导出/导入备份 | 支持同一账号读取 |
 | 学生数据 | 仅当前浏览器 | 仅当前教师账号（Supabase） |
 
-GitHub Pages 只负责托管网页代码；教师的名单、积分和考勤保存在云端数据库或本机浏览器，不写入公开仓库。
+Sites 负责线上网站托管；GitHub 负责源码版本管理。教师的名单、积分、考勤、操作日志和课程进度保存在账号对应的云端数据库或本机浏览器，不写入公开仓库。
 
 ## 本地启动
 
@@ -74,11 +74,11 @@ GitHub Pages 只负责托管网页代码；教师的名单、积分和考勤保�
 
 ## 项目目录
 
-- `cloud.html`：教师云端版主页面。
-- `index.html`：公开演示版页面。
+- `cloud.html`：教师云端版兼容入口；Sites 首页使用同一页面。
+- `index.html`：原有公开演示版源码，作为 GitHub 源码保留。
 - `assets/`：README 和项目展示所用的图片资源。
 - `..\skills\classroom-bubble-maintainer\`：本机 `Ai设计` 父目录统一维护的本项目专用规范，便于后续项目借鉴。
-- `一键启动课堂加分系统.cmd`：Windows / 希沃设备的一键启动入口，只打开当前线上教师云端版。
+- `一键启动课堂加分系统.cmd`：Windows / 希沃设备的一键启动入口，打开 Sites 线上教师云端版。
 - `supabase-config.js`、`supabase-schema.sql`：云端数据连接与数据库结构文件。
 
 旧版单文件页面和离线副本不放在项目根目录，避免误用旧数据结构。
