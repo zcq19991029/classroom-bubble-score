@@ -53,7 +53,8 @@ async function digestHex(value) {
 
 async function derivePassword(password, salt) {
   const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: base64ToBytes(salt), iterations: 120000, hash: "SHA-256" }, material, 256);
+  // Cloudflare Workers currently accepts PBKDF2 iteration counts up to 100000.
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: base64ToBytes(salt), iterations: 100000, hash: "SHA-256" }, material, 256);
   return bytesToBase64(new Uint8Array(bits));
 }
 
