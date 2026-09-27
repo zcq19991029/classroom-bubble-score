@@ -4,7 +4,7 @@
 
 ## 立即体验
 
-- [教师云端版（Sites）](https://classroom-bubble-score.cuddly-stork-1579.chatgpt.site/)：登录后按账号保存多个班级，支持跨电脑、平板同步。
+- [教师云端版（Sites）](https://classroom-bubble-score.zcq991029.chatgpt.site/)：登录后按账号保存多个班级，支持跨电脑、平板同步。
 - [GitHub 源码仓库](https://github.com/zcq19991029/classroom-bubble-score)：用于保存和发布源码，不承担线上网站托管。
 
 ## 当前版本功能
