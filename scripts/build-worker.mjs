@@ -1,30 +1,32 @@
-import { readFile, rm, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
-const projectRoot = resolve(new URL("..", import.meta.url).pathname);
-const sourceRoot = resolve(projectRoot, "static-assets");
+const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const distRoot = resolve(projectRoot, "dist");
-
-const files = [
-  ["/index.html", "text/html; charset=utf-8"],
-  ["/cloud.html", "text/html; charset=utf-8"],
-  ["/xlsx.full.min.js", "application/javascript; charset=utf-8"],
-  ["/supabase-config.js", "application/javascript; charset=utf-8"],
-  ["/校徽背景.png", "image/png"],
-  ["/version.json", "application/json; charset=utf-8"],
+const sourceFiles = [
+  ["/index.html", "text/html; charset=utf-8", "index.html"],
+  ["/cloud.html", "text/html; charset=utf-8", "cloud.html"],
+  ["/xlsx.full.min.js", "application/javascript; charset=utf-8", "xlsx.full.min.js"],
+  ["/supabase-config.js", "application/javascript; charset=utf-8", "supabase-config.js"],
+  ["/d1-migration.js", "application/javascript; charset=utf-8", "d1-migration.js"],
+  ["/校徽背景.png", "image/png", "校徽背景.png"],
+  ["/version.json", "application/json; charset=utf-8", "version.json"],
 ];
 
 const entries = [];
-for (const [pathname, contentType] of files) {
-  const bytes = await readFile(resolve(sourceRoot, pathname.slice(1)));
+for (const [pathname, contentType, filename] of sourceFiles) {
+  const bytes = await readFile(resolve(projectRoot, filename));
   entries.push(`  ${JSON.stringify(pathname)}: { type: ${JSON.stringify(contentType)}, body: ${JSON.stringify(bytes.toString("base64"))} }`);
 }
-
-const worker = `const assets = {\n${entries.join(",\n")}\n};\n\nfunction decodeBase64(value) {\n  const binary = atob(value);\n  const bytes = new Uint8Array(binary.length);\n  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);\n  return bytes;\n}\n\nexport default {\n  async fetch(request, env, ctx) {\n    void env;\n    void ctx;\n\n    let pathname;\n    try {\n      pathname = decodeURIComponent(new URL(request.url).pathname);\n    } catch {\n      return new Response("Bad request", { status: 400 });\n    }\n    if (pathname === "/") pathname = "/index.html";\n\n    const asset = assets[pathname];\n    if (!asset) return new Response("Not found", { status: 404 });\n\n    return new Response(decodeBase64(asset.body), {\n      headers: {\n        "content-type": asset.type,\n        "cache-control": "no-cache",\n      },\n    });\n  },\n};\n`;
+const workerSource = await readFile(resolve(projectRoot, "worker/index.js"), "utf8");
+if (!workerSource.includes("__ASSETS__")) throw new Error("worker/index.js missing __ASSETS__ marker");
+const assetText = entries.join(",\n");
+const worker = workerSource.replace("__ASSETS__", "{\n" + assetText + "\n}");
 
 await rm(distRoot, { recursive: true, force: true });
 await mkdir(resolve(distRoot, "server"), { recursive: true });
 await mkdir(resolve(distRoot, ".openai"), { recursive: true });
 await writeFile(resolve(distRoot, "server/index.js"), worker);
 await writeFile(resolve(distRoot, ".openai/hosting.json"), await readFile(resolve(projectRoot, ".openai/hosting.json"), "utf8"));
-console.log(`Built Worker with ${files.length} preserved static assets`);
+console.log(`Built D1 Worker with ${sourceFiles.length} static assets`);
