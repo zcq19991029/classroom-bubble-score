@@ -71,7 +71,7 @@
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-09-27 01:56</button></small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-09-28 01:01</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -170,7 +170,7 @@
   </div>
 </section></div>
 
-<input type="file" id="restoreFile" accept=".json" hidden />
+<input type="file" id="restoreFile" accept=".json" multiple hidden />
 <div class="toast" id="toast"></div>
 
 <div class="overlay auth-screen show" id="authScreen"><section class="auth-card">
@@ -352,7 +352,39 @@
   document.querySelector('#databaseBtn').onclick=()=>openModal('databaseModal');document.querySelector('#rosterManageBtn').onclick=()=>{renderRosterManager();openModal('rosterManageModal')};document.querySelector('#addStudentBtn').onclick=addStudentToRoster;document.querySelector('#importBtn').onclick=()=>{document.querySelector('#classNameInput').value=data.className||'';openModal('importModal')};document.querySelector('#backupBtn').onclick=backup;document.querySelector('#restoreBtn').onclick=()=>document.querySelector('#restoreFile').click();
   document.querySelector('#rosterFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;document.querySelector('#rosterFileName').textContent=f.name;try{if(/\.xls[xm]?$/i.test(f.name)){const result=rosterFromWorkbook(await f.arrayBuffer());document.querySelector('#rosterText').value=result.students.map(s=>`${s.studentNo},${s.name}`).join('\n');if(result.className)document.querySelector('#classNameInput').value=result.className;toast(`已从 Excel 读取 ${result.students.length} 人`)}else{document.querySelector('#rosterText').value=await f.text();toast('已读取 '+f.name)}}catch(err){document.querySelector('#rosterText').value='';toast(err.message||'Excel 文件读取失败')}e.target.value=''};
   document.querySelector('#confirmImport').onclick=()=>{const students=parseRoster(document.querySelector('#rosterText').value);if(!students.length){toast('请先粘贴或选择名单文件');return}if(data.students.length||data.logs.length)backup();data={version:6,className:document.querySelector('#classNameInput').value.trim()||'课堂加分',students,logs:[],attendance:[],homework:[],examScores:{},lessonTaskCounts:{},lessonSchedule:[],courseProgress:freshProgress(),settings:{...DEFAULT_SETTINGS},lastLesson:currentLesson,updatedAt:Date.now()};recoveryNotice='';closeModal('importModal');render();buildLessonOptions();save();toast(`已生成 ${students.length} 个学生气泡`)};
-  document.querySelector('#restoreFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;let obj;try{obj=JSON.parse((await file.text()).replace(/^\uFEFF/,''));if(!obj||!Array.isArray(obj.students))throw Error('缺少学生名单')}catch(err){console.error('备份解析失败',err);toast(`备份文件无法识别：${err.message||'JSON格式错误'}`);e.target.value='';return}try{keepSafeCurrentClassBeforeRestore();data=obj;repairDataShape();const progress=data.courseProgress&&typeof data.courseProgress==='object'?data.courseProgress:{};data.courseProgress={sourceName:String(progress.sourceName||'教学进度表.docx'),preset:Array.isArray(progress.preset)&&progress.preset.length?progress.preset:DEFAULT_PROGRESS.map((content,i)=>({week:i+1,content})),actual:progress.actual&&typeof progress.actual==='object'?progress.actual:{}};data.lessonTaskCounts=data.lessonTaskCounts&&typeof data.lessonTaskCounts==='object'?data.lessonTaskCounts:{};currentLesson=data.lastLesson||'';localStorage.setItem(KEY,JSON.stringify(data));try{render();buildLessonOptions();document.querySelector('#lessonBadge').textContent=currentLesson||'选择课节'}catch(renderError){console.error('备份已保存，但界面刷新失败',renderError)}save();toast(`已恢复 ${data.className}：${data.students.length}名学生、${data.logs.length}条加减分记录`)}catch(err){console.error('备份恢复失败',err);toast(`文件已识别，但恢复失败：${err.message||'未知错误'}`)}e.target.value=''};
+  function copyValue(value){return JSON.parse(JSON.stringify(value))}
+  function normalizeImportedBackup(obj){
+    if(!obj||!Array.isArray(obj.students))throw new Error('缺少学生名单');
+    const previous=data;
+    try{
+      data=copyValue(obj);
+      repairDataShape();
+      const nos=new Set(data.students.map(s=>String(s.studentNo))),studentIds=new Set(data.students.map(s=>String(s.id)));
+      const orphanLogs=data.logs.filter(x=>!studentIds.has(String(x.studentId))&&!nos.has(String(x.no)));
+      const orphanAttendance=data.attendance.filter(x=>!studentIds.has(String(x.studentId))&&!nos.has(String(x.no)));
+      if(orphanLogs.length||orphanAttendance.length)throw new Error(`存在${orphanLogs.length}条孤儿加分记录、${orphanAttendance.length}条孤儿考勤记录`);
+      const byStudent=new Map();data.logs.forEach(x=>{const key=String(x.studentId||x.no||'');byStudent.set(key,(byStudent.get(key)||0)+Number(x.delta||0));});
+      const mismatch=data.students.find(s=>Number(s.score||0)!==Number(byStudent.get(String(s.id))||byStudent.get(String(s.studentNo))||0));
+      if(mismatch)throw new Error(`学生 ${mismatch.name||mismatch.studentNo} 的累计分与日志不一致`);
+      return copyValue(data);
+    }finally{data=previous}
+  }
+  function migrationSummary(items){return items.map(x=>`${x.className}（${x.students.length}名学生、${x.logs.length}条加减分、${x.attendance.length}条考勤）`).join('；')}
+  document.querySelector('#restoreFile').onchange=async e=>{
+    const files=[...e.target.files];if(!files.length)return;
+    try{
+      const items=[];const names=new Set();
+      for(const file of files){let obj;try{obj=JSON.parse((await file.text()).replace(/^\uFEFF/,''))}catch(_){throw new Error(`${file.name}：JSON格式错误`)}const item=normalizeImportedBackup(obj);if(names.has(item.className))throw new Error(`重复班级：${item.className}`);names.add(item.className);items.push(item)}
+      const snapshotBefore=window.getCloudPayloadSnapshot?.(),existing=items.filter(item=>snapshotBefore?.classes?.[item.className]);
+      const overwrite=existing.length?`\n将覆盖云端同名班级：${existing.map(x=>x.className).join('、')}。`:'';
+      if(!confirm(`已校验 ${items.length} 份备份：\n${migrationSummary(items)}${overwrite}\n\n系统会先下载迁移前云端快照，再批量写入。确定继续吗？`))return;
+      keepSafeCurrentClassBeforeRestore();
+      const snapshot=window.getCloudPayloadSnapshot?.();if(snapshot)download(`课堂气泡-迁移前快照-${new Date().toISOString().slice(0,19).replace(/[T:]/g,'-')}.json`,JSON.stringify(snapshot,null,2));
+      if(items.length>1&&!window.importCloudClasses)throw new Error('当前页面未完成云端登录，批量迁移已取消；请登录后重新选择两份备份');
+      if(window.importCloudClasses){const result=await window.importCloudClasses(items);if(result?.error)throw new Error(result.error.message||result.error)}
+      data=items[items.length-1];repairDataShape();currentLesson=data.lastLesson||'';localStorage.setItem(KEY,JSON.stringify(data));render();buildLessonOptions();document.querySelector('#lessonBadge').textContent=currentLesson||'选择课节';save();toast(`已迁移 ${items.length} 个班级：${migrationSummary(items)}`)
+    }catch(err){console.error('批量备份迁移失败',err);toast(`迁移未完成：${err.message||'未知错误'}`)}finally{e.target.value=''}
+  };
   function keepSafeCurrentClassBeforeRestore(){if(window.cloudDataChanged&&data&&Array.isArray(data.students))window.cloudDataChanged(data)}
   document.querySelector('#confirmCustom').onclick=()=>{const d=Number(document.querySelector('#customScore').value),n=nodes.find(n=>n.s.id===customStudentId);if(!n||!Number.isFinite(d)||d===0){toast('请输入非零分值');return}adjust(n,d);closeModal('customModal')};document.querySelectorAll('[data-custom]').forEach(b=>b.onclick=()=>document.querySelector('#customScore').value=b.dataset.custom);
   document.querySelector('#studentSearch').addEventListener('input',applySearch);document.querySelector('#studentSearch').addEventListener('keydown',e=>{if(e.key==='Enter')locateSearch();if(e.key==='Escape'){e.currentTarget.value='';applySearch();e.currentTarget.blur()}});
@@ -455,6 +487,15 @@
   classSwitcher&&classSwitcher.addEventListener('change',()=>switchCloudClass(classSwitcher.value));
   setInterval(()=>{if(classSwitcher&&(!classSwitcher.options.length||!classSwitcher.value))renderClassSwitcher()},1000);
   async function loadCloud(){if(!user)return;loading=true;setState('正在同步','syncing');try{const {data:row,error}=await client.from('teacher_workspaces').select('payload,updated_at').eq('user_id',user.id).eq('workspace_id','default').maybeSingle();if(error)throw error;cloudPayload=normalizeCloudPayload(row&&row.payload);renderClassSwitcher();window.classroomCloudBridge.setData(clone(cloudPayload.classes[cloudPayload.activeClass]));if(!row||!row.payload||!row.payload.classes){const saved=await writeCloudPayload();if(saved.error)throw saved.error}setState('云端已同步');document.querySelector('#saveStatus').textContent=`云端已同步 · ${cloudPayload.activeClass}`}catch(error){const detail=detailedError(error);keepCurrentClass(window.classroomCloudBridge.getData());renderClassSwitcher();setState('同步失败，使用本机缓存','error',detail);setMessage('云端数据读取失败：'+detail);toast('同步失败，已保留并显示本机班级；点击红色状态查看原因')}finally{loading=false}}
+  window.getCloudPayloadSnapshot=()=>clone(cloudPayload);
+  window.importCloudClasses=async items=>{
+    if(!user)return{error:new Error('尚未登录云端账号')};
+    const previous=clone(cloudPayload),next=normalizeCloudPayload(cloudPayload);
+    items.forEach(item=>{const normalized=normalizeClassData(item);if(normalized)next.classes[normalized.className]=normalized});
+    next.activeClass=items[items.length-1]?.className||next.activeClass;cloudPayload=next;renderClassSwitcher();syncPending=false;clearTimeout(saveTimer);
+    const result=await writeCloudPayload();if(result.error){cloudPayload=previous;renderClassSwitcher();return result}
+    setState('云端已保存');document.querySelector('#saveStatus').textContent=`云端已保存 · 已迁移 ${items.length} 个班级`;return{ok:true,classes:Object.keys(cloudPayload.classes)}
+  };
   window.cloudDataChanged=data=>{if(!user||loading)return;keepCurrentClass(data);syncPending=true;clearTimeout(saveTimer);setState('正在保存','syncing');saveTimer=setTimeout(flushCloud,120)};
   state.onclick=()=>{if(state.classList.contains('error'))alert('云端同步失败原因：\n\n'+(state.title||'暂未取得详细错误'))};
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&syncPending)flushCloud()});
