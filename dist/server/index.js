@@ -247,7 +247,8 @@ export default {
     }
     let pathname;
     try { pathname = decodeURIComponent(url.pathname); } catch { return text("Bad request", 400); }
-    if (pathname === "/") pathname = "/index.html";
+    // Sites 的根网址直接进入教师云端版；公开演示仍可通过 /index.html 打开。
+    if (pathname === "/") pathname = "/cloud.html";
     const asset = assets[pathname];
     if (!asset) return text("Not found", 404);
     return new Response(decodeBase64(asset.body), { headers: { "content-type": asset.type, "cache-control": "no-cache" } });
