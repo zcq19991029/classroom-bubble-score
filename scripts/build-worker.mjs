@@ -27,5 +27,6 @@ await rm(distRoot, { recursive: true, force: true });
 await mkdir(resolve(distRoot, "server"), { recursive: true });
 await mkdir(resolve(distRoot, ".openai"), { recursive: true });
 await writeFile(resolve(distRoot, "server/index.js"), worker);
+await writeFile(resolve(distRoot, "index.html"), await readFile(resolve(projectRoot, "index.html")));
 await writeFile(resolve(distRoot, ".openai/hosting.json"), await readFile(resolve(projectRoot, ".openai/hosting.json"), "utf8"));
 console.log(`Built D1 Worker with ${sourceFiles.length} static assets`);
