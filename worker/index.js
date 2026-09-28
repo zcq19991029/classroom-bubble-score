@@ -132,6 +132,12 @@ async function bootstrapTeacher(db, input, env) {
   const email = String(input.email || "").trim().toLowerCase();
   const password = String(input.password || "");
   const employeeNo = String(input.employeeNo || "").trim() || null;
+  if (employeeNo && !email) {
+    const byNo = await findTeacher(db, { employeeNo });
+    if (!byNo) return { error: "账号或密码不正确", status: 401 };
+    if (!(await passwordMatches(password, byNo.password_salt, byNo.password_hash))) return { error: "账号或密码不正确", status: 401 };
+    return { teacher: byNo, session: await createSession(db, byNo.id), needsMigration: false };
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6) return { error: "请提供有效邮箱和至少6位密码", status: 400 };
   let teacher = await findTeacher(db, { email, employeeNo });
   let needsMigration = false;

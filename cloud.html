@@ -209,9 +209,6 @@
 </section></div>
 
 <script src="xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-<script src="d1-migration.js"></script>
 <script>
 (() => {
   'use strict';
@@ -453,7 +450,8 @@
   {const startBtn=document.querySelector('#confirmLesson');startBtn.type='button';startBtn.onclick=null;startBtn.onpointerdown=e=>{e.preventDefault();e.stopPropagation();const active=lessonGrid.querySelector('.lesson-choice.active'),lesson=active?.dataset.lesson||selectedLesson||lessonButtons[0]?.dataset.lesson;if(!lesson){toast('请先选择课次');return}selectedLesson=currentLesson=lesson;data.lastLesson=lesson;document.querySelector('#lessonBadge').textContent=lesson;document.querySelector('#lessonModal').classList.remove('show');running=true;lastTime=performance.now();try{renderDuty();updateAttendanceBadges();applyScoreView();save()}catch(err){console.error(err)}toast(`${lesson}，开始记录`)}};
 })();
 </script>
-<script>
+<script src="d1-cloud.js"></script>
+<script type="text/plain" id="legacy-supabase-cloud">
 (() => {
   'use strict';
   const cfg=window.SUPABASE_CONFIG||{},REDIRECT_URL=location.origin+(location.pathname.endsWith('/cloud.html')?'/cloud.html':'/'),screen=document.querySelector('#authScreen'),message=document.querySelector('#authMessage'),state=document.querySelector('#cloudState'),accountBtn=document.querySelector('#accountBtn'),classSwitcher=document.querySelector('#classSwitcher');

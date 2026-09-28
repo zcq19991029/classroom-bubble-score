@@ -8,8 +8,7 @@ const sourceFiles = [
   ["/index.html", "text/html; charset=utf-8", "index.html"],
   ["/cloud.html", "text/html; charset=utf-8", "cloud.html"],
   ["/xlsx.full.min.js", "application/javascript; charset=utf-8", "xlsx.full.min.js"],
-  ["/supabase-config.js", "application/javascript; charset=utf-8", "supabase-config.js"],
-  ["/d1-migration.js", "application/javascript; charset=utf-8", "d1-migration.js"],
+  ["/d1-cloud.js", "application/javascript; charset=utf-8", "d1-cloud.js"],
   ["/校徽背景.png", "image/png", "校徽背景.png"],
   ["/version.json", "application/json; charset=utf-8", "version.json"],
 ];
