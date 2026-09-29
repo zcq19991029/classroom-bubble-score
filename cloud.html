@@ -212,7 +212,7 @@
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20260928-0411',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20260930-0208',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{

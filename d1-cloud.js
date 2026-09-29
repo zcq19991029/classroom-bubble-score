@@ -129,6 +129,9 @@
       const body = identifier.includes('@') ? { email: identifier, password } : { employeeNo: identifier, password };
       const result = await api('/api/auth/login', { method: 'POST', body: JSON.stringify(body) });
       if (rememberLogin?.checked) localStorage.setItem('teacherCloudRemember', JSON.stringify({ identifier })); else localStorage.removeItem('teacherCloudRemember');
+      if (rememberLogin?.checked && navigator.credentials && window.PasswordCredential) {
+        try { await navigator.credentials.store(new PasswordCredential({ id: identifier, password, name: '课堂气泡赋分平台' })); } catch (_) {}
+      }
       await applySession({ teacher: result.teacher });
       setMessage('');
       if (typeof toast === 'function') toast('登录成功，已连接 Sites D1');
