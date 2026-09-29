@@ -9,6 +9,7 @@
   const authEmail = document.querySelector('#authEmail');
   const authEmployeeNo = document.querySelector('#authEmployeeNo');
   const authPassword = document.querySelector('#authPassword');
+  const togglePassword = document.querySelector('#togglePassword');
   const signInBtn = document.querySelector('#signInBtn');
   const registerTab = document.querySelector('#registerTab');
   const loginTab = document.querySelector('#loginTab');
@@ -142,6 +143,13 @@
   if (loginTab) loginTab.style.display = 'none';
   if (forgotPasswordBtn) forgotPasswordBtn.style.display = 'none';
   if (authEmployeeNo) authEmployeeNo.style.display = 'none';
+  togglePassword?.addEventListener('click', () => {
+    const visible = authPassword.type === 'password';
+    authPassword.type = visible ? 'text' : 'password';
+    togglePassword.setAttribute('aria-pressed', String(visible));
+    togglePassword.setAttribute('aria-label', visible ? '隐藏密码' : '显示密码');
+    togglePassword.title = visible ? '隐藏密码' : '显示密码';
+  });
   if (authForm) authForm.addEventListener('submit', event => { event.preventDefault(); login(); });
   if (signInBtn) signInBtn.onclick = login;
   if (classSwitcher) classSwitcher.addEventListener('change', async () => {
