@@ -85,6 +85,56 @@ async function findTeacher(db, { email, employeeNo }) {
   return null;
 }
 
+async function ensureInviteTable(db) {
+  await db.prepare(`CREATE TABLE IF NOT EXISTS invite_codes (
+    id TEXT PRIMARY KEY,
+    code_hash TEXT NOT NULL UNIQUE,
+    created_by TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    max_uses INTEGER NOT NULL DEFAULT 1,
+    uses INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    used_at TEXT
+  )`).run();
+}
+
+function inviteCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(10));
+  return [...bytes].map((b) => alphabet[b % alphabet.length]).join("");
+}
+
+async function createInvite(db, teacherId) {
+  await ensureInviteTable(db);
+  const code = inviteCode();
+  const now = new Date();
+  const expires = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  await db.prepare("INSERT INTO invite_codes(id,code_hash,created_by,expires_at,max_uses,uses,created_at) VALUES(?,?,?,?,1,0,?)")
+    .bind(crypto.randomUUID(), await digestHex(code), teacherId, expires, now.toISOString()).run();
+  return { code, expiresAt: expires };
+}
+
+async function registerWithInvite(db, input) {
+  await ensureInviteTable(db);
+  const email = String(input.email || "").trim().toLowerCase();
+  const password = String(input.password || "");
+  const employeeNo = String(input.employeeNo || "").trim() || null;
+  const displayName = String(input.displayName || "教师").trim().slice(0, 80) || "教师";
+  const code = String(input.inviteCode || "").trim().toUpperCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6 || !code) return { error: "请填写有效邮箱、至少6位密码和邀请码", status: 400 };
+  if (await findTeacher(db, { email, employeeNo })) return { error: "邮箱或工号已注册", status: 409 };
+  const row = await db.prepare("SELECT * FROM invite_codes WHERE code_hash=? AND uses < max_uses AND expires_at>? LIMIT 1").bind(await digestHex(code), new Date().toISOString()).first();
+  if (!row) return { error: "邀请码无效、已使用或已过期", status: 400 };
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+  const salt = randomSalt();
+  await db.prepare("INSERT INTO teachers(id,employee_no,email,display_name,password_hash,password_salt,is_admin,created_at,updated_at) VALUES(?,?,?,?,?,?,0,?,?)")
+    .bind(id, employeeNo, email, displayName, await derivePassword(password, salt), salt, now, now).run();
+  await db.prepare("UPDATE invite_codes SET uses=uses+1,used_at=? WHERE id=? AND uses < max_uses").bind(now, row.id).run();
+  const teacher = await findTeacher(db, { email });
+  return { teacher, session: await createSession(db, id) };
+}
+
 async function createSession(db, teacherId) {
   const token = crypto.randomUUID();
   const tokenHash = await digestHex(token);
@@ -164,6 +214,7 @@ async function bootstrapTeacher(db, input, env) {
 async function handleApi(request, env) {
   if (!env.DB) return json({ error: "Sites D1 绑定 DB 不可用" }, { status: 503 });
   const db = env.DB;
+  await ensureInviteTable(db);
   const url = new URL(request.url);
   const pathname = url.pathname;
   if (request.method === "GET" && pathname === "/api/health") {
@@ -175,6 +226,12 @@ async function handleApi(request, env) {
     const result = await bootstrapTeacher(db, body, env);
     if (result.error) return json({ error: result.error }, { status: result.status });
     return json({ ok: true, teacher: publicTeacher(result.teacher), needsMigration: result.needsMigration }, { headers: { "set-cookie": cookieHeader(result.session.token) } });
+  }
+  if (pathname === "/api/auth/register" && request.method === "POST") {
+    const body = await request.json().catch(() => ({}));
+    const result = await registerWithInvite(db, body);
+    if (result.error) return json({ error: result.error }, { status: result.status });
+    return json({ ok: true, teacher: publicTeacher(result.teacher) }, { headers: { "set-cookie": cookieHeader(result.session.token) } });
   }
   if (pathname === "/api/auth/session" && request.method === "GET") {
     const teacher = await sessionTeacher(request, db);
@@ -210,6 +267,9 @@ async function handleApi(request, env) {
   }
   const teacher = await sessionTeacher(request, db);
   if (!teacher) return json({ error: "请先登录 Sites 教师账号" }, { status: 401 });
+  if (pathname === "/api/auth/invite" && request.method === "POST") {
+    return json({ ok: true, ...(await createInvite(db, teacher.id)) });
+  }
   if (pathname === "/api/workspace" && request.method === "GET") {
     const row = await db.prepare("SELECT payload_json,updated_at,source FROM workspaces WHERE teacher_id=? LIMIT 1").bind(teacher.id).first();
     if (!row) return json({ ok: true, payload: null });

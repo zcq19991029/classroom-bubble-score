@@ -139,8 +139,32 @@
     } catch (error) { setMessage(error.message); }
     finally { signInBtn.disabled = false; signInBtn.textContent = '登录'; }
   };
-  if (registerTab) registerTab.style.display = 'none';
-  if (loginTab) loginTab.style.display = 'none';
+  let registerMode = false;
+  const register = async () => {
+    const email = authEmail?.value.trim() || '';
+    const employeeNo = authEmployeeNo?.value.trim() || '';
+    const password = authPassword?.value || '';
+    const inviteCode = document.querySelector('#authOtp')?.value.trim().toUpperCase() || '';
+    if (!email || !employeeNo || password.length < 6 || !inviteCode) { setMessage('注册需要邮箱、工号、至少6位密码和一次性邀请码'); return; }
+    signInBtn.disabled = true; signInBtn.textContent = '正在注册…'; setMessage('正在验证邀请码…');
+    try {
+      const result = await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, employeeNo, password, displayName: employeeNo, inviteCode }) });
+      await applySession({ teacher: result.teacher }); setMessage('注册成功，已进入教师云端空间');
+    } catch (error) { setMessage(error.message); }
+    finally { signInBtn.disabled = false; signInBtn.textContent = registerMode ? '注册账号' : '登录'; }
+  };
+  const setAuthMode = (isRegister) => {
+    registerMode = isRegister;
+    registerTab?.classList.toggle('active', isRegister); loginTab?.classList.toggle('active', !isRegister);
+    if (authEmployeeNo) authEmployeeNo.style.display = isRegister ? 'block' : 'none';
+    const otpRow = document.querySelector('#otpRow'); if (otpRow) otpRow.style.display = isRegister ? 'grid' : 'none';
+    if (signInBtn) signInBtn.textContent = isRegister ? '注册账号' : '登录';
+    if (forgotPasswordBtn) forgotPasswordBtn.style.display = isRegister ? 'none' : 'none';
+    setMessage('');
+  };
+  registerTab?.addEventListener('click', () => setAuthMode(true));
+  loginTab?.addEventListener('click', () => setAuthMode(false));
+  setAuthMode(false);
   if (forgotPasswordBtn) forgotPasswordBtn.style.display = 'none';
   if (authEmployeeNo) authEmployeeNo.style.display = 'none';
   togglePassword?.addEventListener('click', () => {
@@ -150,8 +174,13 @@
     togglePassword.setAttribute('aria-label', visible ? '隐藏密码' : '显示密码');
     togglePassword.title = visible ? '隐藏密码' : '显示密码';
   });
-  if (authForm) authForm.addEventListener('submit', event => { event.preventDefault(); login(); });
-  if (signInBtn) signInBtn.onclick = login;
+  if (authForm) authForm.addEventListener('submit', event => { event.preventDefault(); registerMode ? register() : login(); });
+  if (signInBtn) signInBtn.onclick = () => registerMode ? register() : login();
+  document.querySelector('#signUpBtn')?.addEventListener('click', register);
+  document.querySelector('#generateInviteBtn')?.addEventListener('click', async () => {
+    try { const result = await api('/api/auth/invite', { method: 'POST', body: '{}' }); alert(`一次性邀请码：${result.code}\n有效期至：${new Date(result.expiresAt).toLocaleString('zh-CN')}\n只能使用一次，请发给同事。`); }
+    catch (error) { alert(`生成邀请码失败：${error.message}`); }
+  });
   if (classSwitcher) classSwitcher.addEventListener('change', async () => {
     const name = classSwitcher.value;
     if (!name || !cloudPayload.classes[name] || name === cloudPayload.activeClass) return;

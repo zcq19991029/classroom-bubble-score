@@ -182,7 +182,7 @@
     <input type="email" id="authEmail" name="username" placeholder="邮箱，例如 teacher@qq.com" autocomplete="username" />
     <input type="text" id="authEmployeeNo" name="employee-number" placeholder="工号，例如 11445" autocomplete="off" inputmode="numeric" />
     <div class="password-field"><input type="password" id="authPassword" name="password" placeholder="密码（至少6位）" autocomplete="current-password" /><button type="button" class="password-toggle" id="togglePassword" aria-label="显示密码" aria-pressed="false" title="显示密码"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.6"/></svg></button></div>
-    <div class="otp-row" id="otpRow"><input type="text" id="authOtp" name="one-time-code" placeholder="邮箱确认码（邮件里的6～8位数字）" autocomplete="one-time-code" inputmode="numeric" maxlength="8" /><button type="button" class="btn" id="signUpBtn">发送邮箱确认</button></div>
+    <div class="otp-row" id="otpRow"><input type="text" id="authOtp" name="invite-code" placeholder="一次性邀请码（由教师生成）" autocomplete="off" inputmode="text" maxlength="16" /><button type="button" class="btn" id="signUpBtn">使用邀请码注册</button></div>
     <div class="auth-actions"><button type="submit" class="btn primary" id="signInBtn">登录</button></div>
     <button id="verifyOtpBtn" hidden type="button">完成注册</button>
     <label class="remember-row"><input type="checkbox" id="rememberLogin" /> 记住账号和密码（由浏览器安全保存）</label>
@@ -199,7 +199,7 @@
     <div class="field"><label>姓名或昵称</label><input id="profileNameInput" maxlength="18" placeholder="例如：赵老师" /></div>
     <div class="field"><label>头像文字</label><input id="profileAvatarInput" maxlength="2" placeholder="例如：赵" /></div>
     <div class="note">邮箱和工号用于登录识别，这里只改显示资料；退出后可以换另一个老师账号登录。</div>
-    <div class="actions"><button class="btn" id="signOutBtn">退出 / 切换账号</button><button class="btn primary" id="saveProfileBtn">保存资料</button></div>
+    <div class="actions"><button class="btn" id="signOutBtn">退出 / 切换账号</button><button class="btn" id="generateInviteBtn">生成一次性邀请码</button><button class="btn primary" id="saveProfileBtn">保存资料</button></div>
   </div>
 </section></div>
 
@@ -212,7 +212,7 @@
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20260930-0208',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20261005-2326',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{
