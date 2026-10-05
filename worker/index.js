@@ -149,7 +149,8 @@ async function createSession(db, teacherId) {
 }
 
 function publicTeacher(row) {
-  return { id: row.id, employeeNo: row.employee_no, email: row.email, displayName: row.display_name, avatarText: row.avatar_text || "", isAdmin: Boolean(row.is_admin) };
+  const owner = String(row.email || '').toLowerCase() === OWNER_EMAIL;
+  return { id: row.id, employeeNo: row.employee_no, email: row.email, displayName: row.display_name, avatarText: row.avatar_text || "", isAdmin: Boolean(row.is_admin) || owner };
 }
 
 async function sessionTeacher(request, db) {
@@ -271,7 +272,7 @@ async function handleApi(request, env) {
   const teacher = await sessionTeacher(request, db);
   if (!teacher) return json({ error: "请先登录 Sites 教师账号" }, { status: 401 });
   if (pathname === "/api/auth/invite" && request.method === "POST") {
-    if (!teacher.is_admin) return json({ error: "仅管理员可以生成一次性邀请码" }, { status: 403 });
+    if (!teacher.is_admin && String(teacher.email || '').toLowerCase() !== OWNER_EMAIL) return json({ error: "仅管理员可以生成一次性邀请码" }, { status: 403 });
     return json({ ok: true, ...(await createInvite(db, teacher.id)) });
   }
   if (pathname === "/api/auth/profile" && request.method === "PUT") {
