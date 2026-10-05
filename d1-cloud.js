@@ -122,7 +122,7 @@
     if (!accountBtn) return;
     const name = teacher?.displayName || teacher?.employeeNo || '教师账号';
     accountBtn.classList.toggle('admin', Boolean(teacher?.isAdmin));
-    accountBtn.innerHTML = `<span class="account-avatar">${escapeHtml((teacher?.avatarText || name.charAt(0) || '师').slice(0,2))}</span><span class="account-name">${escapeHtml(name)}</span>${teacher?.isAdmin ? '<span class="admin-badge">👑 管理员 VIP</span>' : ''}`;
+    accountBtn.innerHTML = `<span class="account-avatar">${escapeHtml((teacher?.avatarText || name.charAt(0) || '师').slice(0,2))}</span><span class="account-name">${escapeHtml(name)}</span>${teacher?.isAdmin ? '<span class="account-crown" title="所有者管理员 VIP" aria-label="所有者管理员 VIP"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l5 4 4-7 4 7 5-4-2 13H5z"/><path d="M5 21h14"/></svg></span>' : ''}`;
   };
   const login = async () => {
     const identifier = authEmail?.value.trim() || '';
