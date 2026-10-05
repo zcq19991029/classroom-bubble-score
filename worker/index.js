@@ -7,6 +7,7 @@ const JSON_HEADERS = {
 const SESSION_COOKIE = "d1_sid";
 const SESSION_DAYS = 30;
 const MAX_PAYLOAD_BYTES = 10 * 1024 * 1024;
+const OWNER_EMAIL = "2546605157@qq.com";
 
 function json(value, init = {}) {
   return new Response(JSON.stringify(value), {
@@ -96,6 +97,8 @@ async function ensureInviteTable(db) {
     created_at TEXT NOT NULL,
     used_at TEXT
   )`).run();
+  try { await db.prepare("ALTER TABLE teachers ADD COLUMN avatar_text TEXT NOT NULL DEFAULT ''").run(); } catch (_) {}
+  await db.prepare("UPDATE teachers SET is_admin=1 WHERE lower(email)=lower(?)").bind(OWNER_EMAIL).run();
 }
 
 function inviteCode() {
@@ -146,7 +149,7 @@ async function createSession(db, teacherId) {
 }
 
 function publicTeacher(row) {
-  return { id: row.id, employeeNo: row.employee_no, email: row.email, displayName: row.display_name, isAdmin: Boolean(row.is_admin) };
+  return { id: row.id, employeeNo: row.employee_no, email: row.email, displayName: row.display_name, avatarText: row.avatar_text || "", isAdmin: Boolean(row.is_admin) };
 }
 
 async function sessionTeacher(request, db) {
@@ -268,7 +271,20 @@ async function handleApi(request, env) {
   const teacher = await sessionTeacher(request, db);
   if (!teacher) return json({ error: "请先登录 Sites 教师账号" }, { status: 401 });
   if (pathname === "/api/auth/invite" && request.method === "POST") {
+    if (!teacher.is_admin) return json({ error: "仅管理员可以生成一次性邀请码" }, { status: 403 });
     return json({ ok: true, ...(await createInvite(db, teacher.id)) });
+  }
+  if (pathname === "/api/auth/profile" && request.method === "PUT") {
+    const body = await request.json().catch(() => ({}));
+    const displayName = String(body.displayName || "教师账号").trim().slice(0, 80) || "教师账号";
+    const avatarText = String(body.avatarText || "").trim().slice(0, 2);
+    const employeeNo = String(body.employeeNo || "").trim().slice(0, 24) || null;
+    if (employeeNo && !/^[A-Za-z0-9_-]{3,24}$/.test(employeeNo)) return json({ error: "工号需为3～24位字母、数字、下划线或短横线" }, { status: 400 });
+    const duplicate = employeeNo ? await db.prepare("SELECT id FROM teachers WHERE employee_no=? AND id<>? LIMIT 1").bind(employeeNo, teacher.id).first() : null;
+    if (duplicate) return json({ error: "该工号已被其他账号使用" }, { status: 409 });
+    await db.prepare("UPDATE teachers SET employee_no=?,display_name=?,avatar_text=?,updated_at=? WHERE id=?").bind(employeeNo, displayName, avatarText, new Date().toISOString(), teacher.id).run();
+    const updated = await db.prepare("SELECT * FROM teachers WHERE id=? LIMIT 1").bind(teacher.id).first();
+    return json({ ok: true, teacher: publicTeacher(updated) });
   }
   if (pathname === "/api/workspace" && request.method === "GET") {
     const row = await db.prepare("SELECT payload_json,updated_at,source FROM workspaces WHERE teacher_id=? LIMIT 1").bind(teacher.id).first();

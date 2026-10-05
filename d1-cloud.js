@@ -178,7 +178,12 @@
   if (signInBtn) signInBtn.onclick = () => registerMode ? register() : login();
   document.querySelector('#signUpBtn')?.addEventListener('click', register);
   document.querySelector('#generateInviteBtn')?.addEventListener('click', async () => {
-    try { const result = await api('/api/auth/invite', { method: 'POST', body: '{}' }); alert(`一次性邀请码：${result.code}\n有效期至：${new Date(result.expiresAt).toLocaleString('zh-CN')}\n只能使用一次，请发给同事。`); }
+    try {
+      const result = await api('/api/auth/invite', { method: 'POST', body: '{}' });
+      const text = `课堂气泡赋分系统注册邀请\n\n一次性邀请码：${result.code}\n有效期至：${new Date(result.expiresAt).toLocaleString('zh-CN')}\n使用次数：仅限 1 次\n\n安全规则：\n- 邀请码 24 小时有效；\n- 每个邀请码只能使用一次；\n- 请勿转发到公开群聊或网页；\n- 注册后请妥善保存账号和密码。`;
+      try { await navigator.clipboard.writeText(text); alert(`${text}\n\n已复制整段邀请内容，可直接粘贴给同事。`); }
+      catch (_) { window.prompt('请复制以下邀请内容', text); }
+    }
     catch (error) { alert(`生成邀请码失败：${error.message}`); }
   });
   if (classSwitcher) classSwitcher.addEventListener('change', async () => {
@@ -203,4 +208,31 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && syncPending) flush(); });
   window.addEventListener('pagehide', () => { if (teacher) { keepCurrent(window.classroomCloudBridge.getData()); syncPending = true; flush(); } });
   api('/api/auth/session').then(applySession).catch(() => applySession(null));
+  const profileNameInput = document.querySelector('#profileNameInput');
+  const profileAvatarInput = document.querySelector('#profileAvatarInput');
+  const profileEmployeeInput = document.querySelector('#profileEmployeeInput');
+  function fillProfile() {
+    if (!teacher) return;
+    if (profileNameInput) profileNameInput.value = teacher.displayName || '';
+    if (profileAvatarInput) profileAvatarInput.value = teacher.avatarText || '';
+    if (profileEmployeeInput) profileEmployeeInput.value = teacher.employeeNo || '';
+    const name = profileNameInput?.value.trim() || teacher.displayName || '教师账号';
+    document.querySelector('#profileNamePreview').textContent = name;
+    document.querySelector('#profileAvatarPreview').textContent = (profileAvatarInput?.value.trim() || name.charAt(0) || '师').slice(0, 2);
+    document.querySelector('#profileMetaPreview').textContent = `工号 ${teacher.employeeNo || '未设置'} · ${teacher.email || ''}`;
+  }
+  accountBtn?.addEventListener('click', fillProfile);
+  [profileNameInput, profileAvatarInput, profileEmployeeInput].forEach(input => input?.addEventListener('input', () => {
+    const name = profileNameInput?.value.trim() || teacher?.displayName || '教师账号';
+    document.querySelector('#profileNamePreview').textContent = name;
+    document.querySelector('#profileAvatarPreview').textContent = (profileAvatarInput?.value.trim() || name.charAt(0) || '师').slice(0, 2);
+  }));
+  document.querySelector('#saveProfileBtn')?.addEventListener('click', async () => {
+    try {
+      const result = await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify({ displayName: profileNameInput?.value || '', avatarText: profileAvatarInput?.value || '', employeeNo: profileEmployeeInput?.value || '' }) });
+      teacher = result.teacher; renderAccountButton(); fillProfile(); setState('资料已保存');
+      const status = document.querySelector('#saveStatus'); if (status) status.textContent = '个人资料已同步到 Sites D1';
+      if (typeof toast === 'function') toast('个人资料已保存到云端');
+    } catch (error) { setMessage(error.message); }
+  });
 })();
