@@ -234,12 +234,29 @@
     document.querySelector('#profileNamePreview').textContent = name;
     document.querySelector('#profileAvatarPreview').textContent = (profileAvatarInput?.value.trim() || name.charAt(0) || '师').slice(0, 2);
   }));
-  document.querySelector('#saveProfileBtn')?.addEventListener('click', async () => {
+  const showProfileSaved = () => {
+    document.querySelector('#profileModal')?.classList.remove('show');
+    document.querySelector('.profile-save-feedback')?.remove();
+    const feedback = document.createElement('div');
+    feedback.className = 'profile-save-feedback';
+    feedback.setAttribute('role', 'status');
+    feedback.setAttribute('aria-live', 'polite');
+    feedback.innerHTML = '<span class="profile-save-check" aria-hidden="true">✓</span><span>保存成功</span>';
+    document.body.appendChild(feedback);
+    requestAnimationFrame(() => feedback.classList.add('show'));
+    window.setTimeout(() => feedback.remove(), 1700);
+  };
+  document.querySelector('#saveProfileBtn')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = '保存中…';
     try {
       const result = await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify({ displayName: profileNameInput?.value || '', avatarText: profileAvatarInput?.value || '', employeeNo: profileEmployeeInput?.value || '' }) });
       teacher = result.teacher; renderAccountButton(); fillProfile(); setState('资料已保存');
       const status = document.querySelector('#saveStatus'); if (status) status.textContent = '个人资料已同步到 Sites D1';
-      if (typeof toast === 'function') toast('个人资料已保存到云端');
-    } catch (error) { setMessage(error.message); }
+      showProfileSaved();
+    } catch (error) { setMessage(error.message); if (typeof toast === 'function') toast(`保存失败：${error.message}`); }
+    finally { button.disabled = false; button.textContent = originalText; }
   });
 })();
