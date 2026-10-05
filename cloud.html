@@ -65,6 +65,7 @@
   .score-view-toggle:after{content:"";position:absolute;inset:-70% -25%;z-index:2;pointer-events:none;background:linear-gradient(110deg,transparent 38%,rgba(255,255,255,.58) 48%,transparent 58%);transform:translateX(-60%);transition:transform .65s ease}
   .score-view-toggle:hover:after{transform:translateX(60%)}.score-view-toggle:active{filter:brightness(.98)}.score-view-toggle{width:88px!important;min-width:88px!important;flex:0 0 88px;transform:none!important}.score-view-toggle span,.score-view-toggle span.active{position:relative;z-index:1;background:transparent!important;box-shadow:none!important;font-weight:700}.score-view-toggle span.active{color:#d92734;text-shadow:0 1px 0 rgba(255,255,255,.9)}
   header{height:66px;min-height:66px;box-sizing:border-box;overflow:hidden;padding-top:8px;padding-bottom:8px}.brand{height:42px;min-height:42px;align-items:center}.brand>div:last-child{min-width:0;width:156px}.brand small{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;width:100%;height:16px;min-height:16px;line-height:16px;overflow:hidden!important;white-space:nowrap}.brand #saveStatus{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.build-version{max-width:106px;overflow:hidden;text-overflow:ellipsis}.toolbar .cloud-state{flex:0 0 76px;width:76px!important;max-width:76px!important}@media(max-width:980px){header{height:52px;min-height:52px;padding-top:5px;padding-bottom:5px}.brand{height:38px;min-height:38px}.toolbar .cloud-state{flex-basis:48px;width:48px!important;max-width:48px!important}}@media(max-width:720px){.brand small{display:none!important}}
+ .admin-badge{display:inline-flex;align-items:center;gap:3px;margin-left:4px;padding:2px 6px;border-radius:999px;background:linear-gradient(135deg,#fff2b8,#f2b632);color:#704600;font-size:11px;font-weight:800;box-shadow:0 2px 8px rgba(180,125,20,.22)} .account-btn.admin{border-color:#e5bd55;background:#fffaf0}
 </style>
 </head>
 <body>
@@ -195,7 +196,7 @@
 <div class="overlay" id="profileModal"><section class="panel small">
   <div class="panel-head"><div><h2>个人信息</h2><p id="profileSummary">账号资料会同步到云端</p></div><button class="close" data-close="profileModal">×</button></div>
   <div class="form">
-    <div class="profile-preview"><div class="profile-avatar" id="profileAvatarPreview">师</div><div><b id="profileNamePreview">教师账号</b><span id="profileMetaPreview">工号未设置</span></div></div>
+    <div class="profile-preview"><div class="profile-avatar" id="profileAvatarPreview">师</div><div><b id="profileNamePreview">教师账号</b><span id="profileMetaPreview">工号未设置</span><span class="admin-badge" id="profileAdminBadge" style="display:none">👑 管理员 VIP</span></div></div>
     <div class="field"><label>姓名或昵称</label><input id="profileNameInput" maxlength="18" placeholder="例如：赵老师" /></div>
     <div class="field"><label>头像文字</label><input id="profileAvatarInput" maxlength="2" placeholder="例如：赵" /></div>
     <div class="field"><label>工号</label><input id="profileEmployeeInput" maxlength="24" placeholder="例如：11445" autocomplete="off" /></div>

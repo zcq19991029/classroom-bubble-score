@@ -115,8 +115,14 @@
       return;
     }
     screen?.classList.remove('show');
-    if (accountBtn) accountBtn.textContent = teacher.displayName || teacher.employeeNo || '教师账号';
+    renderAccountButton();
     await load();
+  };
+  const renderAccountButton = () => {
+    if (!accountBtn) return;
+    const name = teacher?.displayName || teacher?.employeeNo || '教师账号';
+    accountBtn.classList.toggle('admin', Boolean(teacher?.isAdmin));
+    accountBtn.innerHTML = `<span class="account-avatar">${escapeHtml((teacher?.avatarText || name.charAt(0) || '师').slice(0,2))}</span><span class="account-name">${escapeHtml(name)}</span>${teacher?.isAdmin ? '<span class="admin-badge">👑 管理员 VIP</span>' : ''}`;
   };
   const login = async () => {
     const identifier = authEmail?.value.trim() || '';
@@ -220,6 +226,7 @@
     document.querySelector('#profileNamePreview').textContent = name;
     document.querySelector('#profileAvatarPreview').textContent = (profileAvatarInput?.value.trim() || name.charAt(0) || '师').slice(0, 2);
     document.querySelector('#profileMetaPreview').textContent = `工号 ${teacher.employeeNo || '未设置'} · ${teacher.email || ''}`;
+    const badge = document.querySelector('#profileAdminBadge'); if (badge) badge.style.display = teacher.isAdmin ? 'inline-flex' : 'none';
   }
   accountBtn?.addEventListener('click', fillProfile);
   [profileNameInput, profileAvatarInput, profileEmployeeInput].forEach(input => input?.addEventListener('input', () => {
