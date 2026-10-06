@@ -74,7 +74,7 @@
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-06 01:57</button></small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-06 23:55</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -220,7 +220,7 @@
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20261006-0157',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20261006-2355',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{
