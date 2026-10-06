@@ -3,7 +3,7 @@ const vm=require('node:vm');
 const assert=require('node:assert/strict');
 const html=fs.readFileSync('cloud.html','utf8');
 const context=vm.createContext({});
-for(const name of ['schoolWeekMonday','schoolWeekNumber','schoolDateForWeek','lessonIdentity']){
+for(const name of ['schoolWeekMonday','schoolWeekNumber','schoolDateForWeek','lessonIdentity','sameLesson','lessonMapValue']){
   const line=html.split(/\r?\n/).find(x=>x.trimStart().startsWith(`function ${name}(`));
   assert.ok(line,name);vm.runInContext(line,context);
 }
@@ -16,3 +16,8 @@ for(const start of ['2026-08-31','2026-09-01']){
 }
 assert.equal(context.lessonIdentity('第1节课 · 第1周 · 10月8日'),context.lessonIdentity('第1节课 · 第6周 · 10月8日'));
 console.log('PASS: calendar boundaries, 280 import/display round trips and lesson selection identity');
+const old='第1节课 · 第1周 · 10月8日星期四 · 26电气8班 · 7-8节',fixed=old.replace('第1周','第6周');
+assert.equal(context.sameLesson(old,fixed),true);
+assert.equal(context.sameLesson(old,fixed.replace('7-8节','9-10节')),false);
+assert.equal(context.lessonMapValue({[old]:'旧教学进度'},fixed),'旧教学进度');
+assert.equal(context.lessonMapValue({[old]:'旧',[fixed]:''},fixed),'');
