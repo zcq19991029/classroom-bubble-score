@@ -13,3 +13,15 @@ console.log('PASS stable identity, sort, multi-move, historical scoring/attendan
 const fs=require('node:fs'),vm=require('node:vm'),html=fs.readFileSync('cloud.html','utf8');
 for(const block of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))new vm.Script(block[1]);
 console.log('PASS inline script syntax');
+async function testCloudFailure(){
+ const code=fs.readFileSync('d1-cloud.js','utf8'),start=code.indexOf('  window.saveScheduleCloud = async'),end=code.indexOf('  const clone',start);
+ const original={className:'测试班',students:[],lessonSchedule:before},candidate={...original,lessonSchedule:[{...before[0],date:'2026-12-22'}]};
+ for(const mode of ['fail','conflict','success','loggedout']){
+  const ctx=vm.createContext({window:{},clearTimeout:()=>{},setState:()=>{},renderClasses:()=>{},clone:x=>JSON.parse(JSON.stringify(x)),normalizePayload:x=>x,api:async(path,options)=>{if(options){if(mode==='fail')throw Error('模拟网络失败');assert.equal(JSON.parse(options.body).expectedUpdatedAt,'revision1');return {ok:true}}return {updatedAt:'revision1',payload:{classes:{测试班:mode==='conflict'?{...original,changed:true}:original}}}}});
+  vm.runInContext(`let teacher=${mode==='loggedout'?'null':'{}'},loading=false,syncInFlight=false,scheduleSaving=false,syncTimer=0,syncPending=false,cloudPayload=${JSON.stringify({classes:{测试班:original}})};`+code.slice(start,end),ctx);
+  if(mode==='success'){await ctx.window.saveScheduleCloud(candidate,original);assert.equal(vm.runInContext('cloudPayload.classes["测试班"].lessonSchedule[0].date',ctx),'2026-12-22')}
+  else{await assert.rejects(ctx.window.saveScheduleCloud(candidate,original));assert.equal(vm.runInContext('cloudPayload.classes["测试班"].lessonSchedule[0].date',ctx),'2026-10-10')}
+ }
+ console.log('PASS cloud success, failed-save rollback, concurrent-change rejection, login guard');
+}
+testCloudFailure().catch(e=>{console.error(e);process.exitCode=1});
