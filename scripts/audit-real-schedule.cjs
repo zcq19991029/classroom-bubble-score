@@ -11,7 +11,7 @@ const wb=XLSX.read(buffer,{type:'buffer'});
 for(const sn of wb.SheetNames)console.log('SHEET',sn,JSON.stringify(XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:false})));
 try{
  const groups=context.parseSchoolWorkbook(buffer);
- const rules=[['2026-09-28','2026-12-21'],['2026-09-29','2026-12-22'],['2026-09-30','2026-12-23'],['2026-10-06','2026-10-08']].map(([from,to])=>({from,to}));
+ const rules=[['2026-09-28','2026-12-21'],['2026-09-29','2026-12-22'],['2026-09-30','2026-12-23'],['2026-10-06','2026-10-10']].map(([from,to])=>({from,to}));
  const rows=context.schoolRowsToSchedule(groups,'2026-08-31',rules);
  console.log('PARSED',JSON.stringify(groups));
  for(const name of ['25机电2班','25机电3班']){const r=rows.filter(x=>x.className===name);assert.equal(r.length,24);assert.equal(r.filter(x=>x.period==='3-4').length,8);}
