@@ -74,7 +74,7 @@
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-06 23:55</button></small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-07 00:19</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -220,7 +220,7 @@
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20261006-2355',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20261007-0019',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{
@@ -342,6 +342,8 @@
   function addStudentToRoster(){const no=document.querySelector('#newStudentNo').value.trim(),name=document.querySelector('#newStudentName').value.trim();if(!no||!name){toast('请填写学号和姓名');return}if(data.students.some(s=>String(s.studentNo)===no)){toast('这个学号已经在当前班级');return}data.students.push({id:crypto.randomUUID(),studentNo:no,name,score:0,emoji:EMOJIS[data.students.length%EMOJIS.length]});document.querySelector('#newStudentNo').value='';document.querySelector('#newStudentName').value='';save();render();renderRosterManager();toast(`已新增 ${no} ${name}`)}
   function deleteStudentFromRoster(id){const s=data.students.find(x=>x.id===id);if(!s)return;if(!confirm(`确定将 ${s.studentNo} ${s.name} 移出当前班级名单吗？\n\n既往加减分和考勤历史会保留。`))return;data.students=data.students.filter(x=>x.id!==id);save();render();renderRosterManager();toast(`已将 ${s.name} 移出名单`)}
   function attendanceDeduction(status,record){if(status==='签到'||status==='请假')return 0;if(status==='迟到')return Math.max(0,Number(data.settings.absenceDeduction)||0);if(status==='旷课'||status==='缺勤')return Math.max(0,Number(data.settings.truantDeduction)||0);const rule=customAttendanceRules().find(r=>r.name===status);return rule?Math.max(0,Number(rule.deduction)||0):Math.max(0,Number(record?.deduction)||0)}
+  const attendanceHistoryWithoutDeductions=attendanceHistory;
+  attendanceHistory=function(){const html=attendanceHistoryWithoutDeductions(),template=document.createElement('template');template.innerHTML=html;template.content.querySelectorAll('[data-editattendance]').forEach(button=>{const record=data.attendance.find(a=>a.id===button.dataset.editattendance);if(!record)return;const statusCell=button.closest('tr')?.cells[2];if(!statusCell)return;const loss=attendanceDeduction(record.status,record);statusCell.append(document.createTextNode(loss>0?` · 扣${loss}`:' · 不扣'))});return '<div class="note">考勤扣分，不影响课堂积分</div>'+template.innerHTML};
   function chooseAttendanceMode(name,button){attendanceMode=name;document.querySelectorAll('[data-attmode]').forEach(x=>x.classList.toggle('active',x===button));renderAttendanceList()}
   function renderCustomAttendanceModes(){const rules=customAttendanceRules(),batch=document.querySelector('#customAttendanceModes'),quick=document.querySelector('#quickCustomAttendanceModes');batch.innerHTML=rules.map(r=>`<span class="custom-rule-chip"><label>${esc(r.name)} <input type="number" min="0" step="0.5" value="${Number(r.deduction)||0}" data-custom-deduction="${esc(r.name)}" aria-label="${esc(r.name)}扣分单位"></label><button type="button" class="delete-att-rule" data-delete-att-rule="${esc(r.name)}" title="删除此规则" aria-label="删除${esc(r.name)}">×</button></span>`).join('');quick.innerHTML=rules.map(r=>`<button data-custom-quickatt="${esc(r.name)}">${esc(r.name)}</button>`).join('');quick.querySelectorAll('[data-custom-quickatt]').forEach(b=>b.onclick=()=>{setAttendance([attendanceStudentId],b.dataset.customQuickatt);closeModal('quickAttendanceModal');toast('已标记'+b.dataset.customQuickatt)})}
   function deleteAttendanceRule(name){if(!confirm(`确定删除自定义规则“${name}”吗？已产生的历史记录会保留。`))return;const old=customAttendanceRules().find(r=>r.name===name);data.attendance.forEach(a=>{if(a.status===name&&a.deduction==null)a.deduction=Number(old?.deduction)||0});data.settings.customAttendanceRules=customAttendanceRules().filter(r=>r.name!==name);save();renderCustomAttendanceModes();renderAttendanceList();toast('自定义规则已删除，历史扣分已保留')}
