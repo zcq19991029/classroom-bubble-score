@@ -2,7 +2,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const assert=require('node:assert/strict');
 const html=fs.readFileSync('cloud.html','utf8');
-const context=vm.createContext({});
+const context=vm.createContext({data:{lessonSchedule:[]},ScheduleManager:require('../schedule-manager.js')});
 for(const name of ['schoolWeekMonday','schoolWeekNumber','schoolDateForWeek','lessonIdentity','sameLesson','lessonMapValue']){
   const line=html.split(/\r?\n/).find(x=>x.trimStart().startsWith(`function ${name}(`));
   assert.ok(line,name);vm.runInContext(line,context);

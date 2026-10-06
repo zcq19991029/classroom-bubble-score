@@ -299,6 +299,12 @@ async function handleApi(request, env) {
     const payload = safePayload(body.payload);
     if (!payload) return json({ error: "数据结构不完整，未写入" }, { status: 400 });
     const now = new Date().toISOString();
+    if (Object.prototype.hasOwnProperty.call(body, 'expectedUpdatedAt')) {
+      const result = await db.prepare("UPDATE workspaces SET payload_json=?,payload_version=?,source='sites-d1',updated_at=? WHERE teacher_id=? AND updated_at=?")
+        .bind(JSON.stringify(payload), Number(payload.version || 2), now, teacher.id, body.expectedUpdatedAt).run();
+      if (!result.meta?.changes) return json({ error: "云端已发生变化，请刷新后重新调整课表" }, { status: 409 });
+      return json({ ok: true, updatedAt: now });
+    }
     await db.prepare("INSERT INTO workspaces(teacher_id,payload_json,payload_version,source,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(teacher_id) DO UPDATE SET payload_json=excluded.payload_json,payload_version=excluded.payload_version,source='sites-d1',updated_at=excluded.updated_at")
       .bind(teacher.id, JSON.stringify(payload), Number(payload.version || 2), "sites-d1", now).run();
     return json({ ok: true, updatedAt: now });

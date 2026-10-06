@@ -21,6 +21,22 @@
   let syncPending = false;
   let syncTimer = 0;
   let syncInFlight = false;
+  let scheduleSaving = false;
+  window.saveScheduleCloud = async (candidate, original) => {
+    if (!teacher || loading) throw new Error('请先登录并等待云端同步完成');
+    if (scheduleSaving || syncInFlight) throw new Error('正在同步，请稍后重试');
+    scheduleSaving = true; clearTimeout(syncTimer);
+    try {
+      if(syncPending){await flush();if(syncPending)throw new Error('已有数据同步失败，请先恢复同步');}
+      const latest=await api('/api/workspace');
+      const remote=latest.payload?.classes?.[original.className];
+      if(JSON.stringify(remote)!==JSON.stringify(cloudPayload.classes[original.className]))throw new Error('云端班级已变化，请刷新后重试');
+      const payload=clone(latest.payload);payload.classes[candidate.className]=clone(candidate);
+      await api('/api/workspace',{method:'PUT',body:JSON.stringify({payload,expectedUpdatedAt:latest.updatedAt})});
+      cloudPayload=normalizePayload(payload);syncPending=false;setState('云端已同步');renderClasses();
+    } catch(error){setState('课表保存失败','error',error.message);throw error}
+    finally{scheduleSaving=false}
+  };
   const clone = value => JSON.parse(JSON.stringify(value || {}));
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const setMessage = value => { if (message) message.textContent = value || ''; };

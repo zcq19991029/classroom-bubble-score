@@ -9,6 +9,7 @@ const sourceFiles = [
   ["/cloud.html", "text/html; charset=utf-8", "cloud.html"],
   ["/xlsx.full.min.js", "application/javascript; charset=utf-8", "xlsx.full.min.js"],
   ["/d1-cloud.js", "application/javascript; charset=utf-8", "d1-cloud.js"],
+  ["/schedule-manager.js", "application/javascript; charset=utf-8", "schedule-manager.js"],
   ["/校徽背景.png", "image/png", "校徽背景.png"],
   ["/version.json", "application/json; charset=utf-8", "version.json"],
 ];

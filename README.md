@@ -35,6 +35,11 @@ GitHub 负责源码、提交和发布审计；Sites Worker 负责线上页面、
 
 ### 考勤与课程
 
+- 可视化调课：当前课次 → 课表设置 → 勾选一节或同一天多节 → 新日期（单节可改节次）→ 预览 → 确认保存云端。无需编写整张课表；窗口内提供教程。系统预设展开后首次修改成为班级专属课表。
+- 上传课表一次只导入当前班级，必须预览确认；“高级编辑”保留文本格式。周次文件的日期基准和导入规则与现有课次调课分开。
+- 课次保存稳定id及旧名称aliases；明确对应的旧积分/考勤补充lessonId，旧文字不改写，进度及任务上限通过别名关联。未知历史关联、冲突日期和节次会阻止保存，不能强行覆盖。
+- 调课先保存云端，再应用本地；使用expectedUpdatedAt条件更新防止覆盖同期变化。失败保留旧课表和待调整内容。Worker仍按登录teacher.id隔离，不新增管理员权限。
+
 - 2026秋季调课更正：10月10日补10月6日；9月28/29/30分别调到12月21/22/23。机电3班10月8日原有周四3-4节保留，不全局替换10月8日。预设实际排序后重新编号，既有记录不批量改写。
 
 - 已签到、未到原因、请假、迟到、旷课和自定义考勤原因。
@@ -93,6 +98,8 @@ classroom-bubble-score/
 ```powershell
 node scripts/build-worker.mjs
 ```
+
+调课回归：`node scripts/test-schedule-manager.cjs`；周历回归：`node scripts/test-school-calendar.cjs`；预设回归：`node scripts/test-adjusted-presets.cjs`。真实课表解析：`node scripts/audit-real-schedule.cjs`（只读本机课表，不写生产）。
 
 构建后必须检查 `dist/server/index.js` 已更新；不能只修改 `worker/index.js` 就发布。
 
