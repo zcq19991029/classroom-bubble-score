@@ -24,6 +24,8 @@
 
 `teachers`（账号/工号/密码哈希/管理员与资料）、`sessions`（会话）、`workspaces`（班级/成绩/考勤/课程进度/操作记录）、`invite_codes`（邀请码状态）、`migration_audit`（迁移审计）。
 
+`teacher_feedback`（教师问题/建议、联系方式、管理员状态/回复及双方未读标志）：独立于workspaces，普通教师只读自己的反馈，只有所有者可以管理全部。入口feedback.js，Worker /api/feedback；回归scripts/test-feedback.cjs。新增迁移由drizzle管理，不在请求中建表；构建需打包dist/.openai/drizzle。
+
 ## 发布前验收
 
 1. 先检查 D1 健康状态、当前班级汇总和迁移审计。
