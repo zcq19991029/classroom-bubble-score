@@ -28,7 +28,7 @@
     rows.forEach((r,i)=>{const label=labels(r,i);if(!r.aliases.includes(label))r.aliases.push(label)});
     const owners=new Map();for(const r of rows)for(const a of r.aliases){const k=identity(a);if(owners.has(k)&&owners.get(k)!==r.id)throw Error('新课次名称与历史名称冲突，请核对');owners.set(k,r.id)}
     next.lessonSchedule=rows;next.settings.attendanceTotalLessons=rows.length;
-    const active=resolve(before,next.lastLesson);next.lastLesson=active?labels(rows.find(r=>r.id===active),rows.findIndex(r=>r.id===active)):labels(rows[0],0);
+    const active=resolve(before,next.lastLesson),activeIndex=rows.findIndex(r=>r.id===active);next.lastLesson=activeIndex>=0?labels(rows[activeIndex],activeIndex):labels(rows[0],0);
     return next;
   }
   const api={identity,sort,validate,resolve,prepare};root.ScheduleManager=api;if(typeof module!=='undefined')module.exports=api;
