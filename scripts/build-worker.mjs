@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile, cp } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
@@ -10,6 +10,7 @@ const sourceFiles = [
   ["/xlsx.full.min.js", "application/javascript; charset=utf-8", "xlsx.full.min.js"],
   ["/d1-cloud.js", "application/javascript; charset=utf-8", "d1-cloud.js"],
   ["/schedule-manager.js", "application/javascript; charset=utf-8", "schedule-manager.js"],
+  ["/feedback.js", "application/javascript; charset=utf-8", "feedback.js"],
   ["/校徽背景.png", "image/png", "校徽背景.png"],
   ["/version.json", "application/json; charset=utf-8", "version.json"],
 ];
@@ -30,4 +31,5 @@ await mkdir(resolve(distRoot, ".openai"), { recursive: true });
 await writeFile(resolve(distRoot, "server/index.js"), worker);
 await writeFile(resolve(distRoot, "index.html"), await readFile(resolve(projectRoot, "index.html")));
 await writeFile(resolve(distRoot, ".openai/hosting.json"), await readFile(resolve(projectRoot, ".openai/hosting.json"), "utf8"));
+await cp(resolve(projectRoot, "drizzle"), resolve(distRoot, ".openai/drizzle"), { recursive: true });
 console.log(`Built D1 Worker with ${sourceFiles.length} static assets`);

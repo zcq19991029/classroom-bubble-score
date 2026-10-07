@@ -125,6 +125,7 @@
   const applySession = async next => {
     teacher = next && next.teacher ? next.teacher : null;
     if (!teacher) {
+      window.classroomFeedback?.setTeacher(null);
       screen?.classList.add('show');
       renderClasses();
       setState('等待登录');
@@ -135,6 +136,7 @@
     await load();
   };
   const renderAccountButton = () => {
+    window.classroomFeedback?.setTeacher(teacher);
     if (!accountBtn) return;
     const name = teacher?.displayName || teacher?.employeeNo || '教师账号';
     accountBtn.classList.toggle('admin', Boolean(teacher?.isAdmin));
@@ -222,7 +224,7 @@
   });
   window.cloudDataChanged = data => { if (!teacher || loading) return; keepCurrent(data); syncPending = true; clearTimeout(syncTimer); syncTimer = setTimeout(flush, 180); };
   accountBtn?.addEventListener('click', () => { if (!teacher) return; document.querySelector('#profileModal')?.classList.add('show'); });
-  document.querySelector('#signOutBtn')?.addEventListener('click', async () => { await api('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => {}); teacher = null; document.querySelector('#profileModal')?.classList.remove('show'); screen?.classList.add('show'); setState('等待登录'); });
+  document.querySelector('#signOutBtn')?.addEventListener('click', async () => { await api('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => {}); teacher = null; window.classroomFeedback?.setTeacher(null); document.querySelector('#profileModal')?.classList.remove('show'); screen?.classList.add('show'); setState('等待登录'); });
   const remembered = JSON.parse(localStorage.getItem('teacherCloudRemember') || 'null');
   if (authEmail) { authEmail.type = 'text'; authEmail.placeholder = '邮箱或工号'; }
   if (remembered && authEmail) { authEmail.value = remembered.identifier || ''; if (rememberLogin) rememberLogin.checked = true; }

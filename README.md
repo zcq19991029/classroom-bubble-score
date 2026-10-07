@@ -51,6 +51,8 @@ GitHub 负责源码、提交和发布审计；Sites Worker 负责线上页面、
 
 ### 账号、数据与管理
 
+- 问题反馈/功能建议：教师提交后保存到D1独立表`teacher_feedback`，仅本人和所有者管理员可读；管理员能回复及标记待处理/处理中/已解决。双方有站内未读提醒（每60秒及切回页面检查，不是手机推送），打开列表标为已读。入口在账号按钮旁；管理员可切换“我的反馈”和“管理员收件箱”。
+- 提交内容5～2000字、联系方式选填最多120字；数据库原子限流为每分钟1条、滚动24小时5条。回复最多2000字，前端纯文本展示；反馈不写入班级工作区，不改变成绩、考勤、课表。当前列表只显示最近100条，不提供图片附件或邮件通知。
 - 教师账号登录、会话 Cookie、密码哈希、工号登录和教师资料同步。
 - 所有者管理员标识、管理员皇冠和一次性邀请码生成入口。
 - 邀请码有效期 24 小时、每个只能使用一次、普通教师不能生成，D1 仅保存邀请码哈希。
@@ -73,6 +75,7 @@ GitHub 负责源码、提交和发布审计；Sites Worker 负责线上页面、
 classroom-bubble-score/
 ├─ cloud.html                 Sites 教师云端页面
 ├─ d1-cloud.js                D1 前端 API 桥接、登录、资料、邀请码和工作区同步
+├─ feedback.js                教师反馈、管理员回复、站内未读提醒
 ├─ index.html                 本地/公开演示版
 ├─ worker/index.js             Worker 路由、认证、邀请码、D1 读写和静态资源服务
 ├─ scripts/build-worker.mjs    将前端资源嵌入 Worker，生成 dist/server/index.js
@@ -102,6 +105,8 @@ node scripts/build-worker.mjs
 ```
 
 调课回归：`node scripts/test-schedule-manager.cjs`；周历回归：`node scripts/test-school-calendar.cjs`；预设回归：`node scripts/test-adjusted-presets.cjs`。真实课表解析：`node scripts/audit-real-schedule.cjs`（只读本机课表，不写生产）。
+
+反馈回归：`node scripts/test-feedback.cjs`（Node 24内置SQLite，内存测试库，不写生产）。新增表由`drizzle/0001_teacher_feedback.sql`迁移创建，构建产物包含`dist/.openai/drizzle`，发布时不得遗漏迁移。
 
 构建后必须检查 `dist/server/index.js` 已更新；不能只修改 `worker/index.js` 就发布。
 

@@ -222,7 +222,7 @@ async function handleApi(request, env) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   if (request.method === "GET" && pathname === "/api/health") {
-    const tables = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('teachers','sessions','workspaces','migration_audit') ORDER BY name").all();
+    const tables = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('teachers','sessions','workspaces','migration_audit','teacher_feedback') ORDER BY name").all();
     return json({ ok: true, database: "DB", tables: tables.results || [] });
   }
   if (pathname === "/api/auth/login" && request.method === "POST") {
@@ -271,6 +271,51 @@ async function handleApi(request, env) {
   }
   const teacher = await sessionTeacher(request, db);
   if (!teacher) return json({ error: "请先登录 Sites 教师账号" }, { status: 401 });
+  if (pathname === '/api/feedback' || pathname.startsWith('/api/feedback/')) {
+    const owner = String(teacher.email || '').toLowerCase() === OWNER_EMAIL;
+    if (request.method !== 'GET' && request.headers.get('origin') !== url.origin) return json({error:'反馈请求来源不正确'}, {status:403});
+    const all = url.searchParams.get('scope') === 'all';
+    if (all && !owner) return json({error:'仅所有者管理员可查看全部反馈'}, {status:403});
+    if (pathname === '/api/feedback' && request.method === 'GET') {
+      const where = all ? '' : ' WHERE f.teacher_id=?';
+      const args = all ? [] : [teacher.id];
+      const items = await db.prepare(`SELECT f.*,t.display_name,t.employee_no,t.email FROM teacher_feedback f JOIN teachers t ON t.id=f.teacher_id${where} ORDER BY f.created_at DESC,f.id DESC LIMIT 100`).bind(...args).all();
+      const unread = await db.prepare(`SELECT COUNT(*) AS count FROM teacher_feedback f${all?' WHERE f.admin_unread=1':' WHERE f.teacher_id=? AND f.teacher_unread=1'}`).bind(...args).first();
+      return json({ok:true,items:items.results,unread:unread.count,canManage:owner});
+    }
+    const raw = await request.text();
+    if (new TextEncoder().encode(raw).byteLength > 16000) return json({error:'反馈内容过长'}, {status:413});
+    let body; try { body=JSON.parse(raw); } catch { return json({error:'请求格式无效'}, {status:400}); }
+    if (!body || typeof body !== 'object') return json({error:'请求格式无效'}, {status:400});
+    if (pathname === '/api/feedback' && request.method === 'POST') {
+      const category=body.category,content=String(body.content||'').trim(),contact=String(body.contact||'').trim();
+      if (!['问题反馈','功能建议'].includes(category)||content.length<5||content.length>2000||contact.length>120) return json({error:'内容请填写5～2000字，联系方式最多120字'}, {status:400});
+      const id=crypto.randomUUID(),now=new Date().toISOString(),minute=new Date(Date.now()-60000).toISOString(),day=new Date(Date.now()-86400000).toISOString();
+      // Single conditional insert: concurrent submissions share the same database rate limit.
+      const result=await db.prepare(`INSERT INTO teacher_feedback(id,teacher_id,category,content,contact,created_at,updated_at)
+        SELECT ?,?,?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM teacher_feedback WHERE teacher_id=? AND created_at>?)
+        AND (SELECT COUNT(*) FROM teacher_feedback WHERE teacher_id=? AND created_at>?)<5`).bind(id,teacher.id,category,content,contact,now,now,teacher.id,minute,teacher.id,day).run();
+      if (!result.meta?.changes) return json({error:'提交太频繁：每分钟1条、24小时最多5条，请稍后再试'}, {status:429});
+      return json({ok:true,id}, {status:201});
+    }
+    if (pathname === '/api/feedback/read' && request.method === 'POST') {
+      if (!Array.isArray(body.ids)||body.ids.length>100||body.ids.some(id=>typeof id!=='string'||id.length>80)) return json({error:'反馈编号无效'}, {status:400});
+      if (body.scope==='all' && !owner) return json({error:'仅所有者管理员可管理反馈'}, {status:403});
+      if (body.ids.length) {
+        const admin=body.scope==='all',marks=body.ids.map(()=>'?').join(',');
+        await db.prepare(`UPDATE teacher_feedback SET ${admin?'admin_unread':'teacher_unread'}=0 WHERE id IN (${marks})${admin?'':' AND teacher_id=?'}`).bind(...body.ids,...(admin?[]:[teacher.id])).run();
+      }
+      return json({ok:true});
+    }
+    if (request.method === 'PATCH' && /^\/api\/feedback\/[^/]+$/.test(pathname)) {
+      if (!owner) return json({error:'仅所有者管理员可回复反馈'}, {status:403});
+      const status=body.status,reply=String(body.reply??'').trim();
+      if (!['待处理','处理中','已解决'].includes(status)||reply.length>2000) return json({error:'处理状态或回复无效'}, {status:400});
+      const result=await db.prepare('UPDATE teacher_feedback SET status=?,reply=?,teacher_unread=1,admin_unread=0,updated_at=? WHERE id=?').bind(status,reply,new Date().toISOString(),decodeURIComponent(pathname.split('/').pop())).run();
+      return result.meta?.changes?json({ok:true}):json({error:'反馈不存在'}, {status:404});
+    }
+    return json({error:'Not found'}, {status:404});
+  }
   if (pathname === "/api/auth/invite" && request.method === "POST") {
     if (!teacher.is_admin && String(teacher.email || '').toLowerCase() !== OWNER_EMAIL) return json({ error: "仅管理员可以生成一次性邀请码" }, { status: 403 });
     return json({ ok: true, ...(await createInvite(db, teacher.id)) });
