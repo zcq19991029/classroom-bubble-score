@@ -10,7 +10,7 @@
 
 - Sites 线上版：[classroom-bubble-score.zcq991029.chatgpt.site](https://classroom-bubble-score.zcq991029.chatgpt.site)
 - GitHub 源码：[zcq19991029/classroom-bubble-score](https://github.com/zcq19991029/classroom-bubble-score)
-- Sites 当前发布：v37（2026-10-08），页面版本 `20261008-0822`，显示发布时间 `2026-10-08 08:22`。生产源码 SHA：`ce5a242dcf6c09df1f1e8be21a9439986b914995`；后续纯文档提交不代表重新部署。
+- Sites 当前发布：v38（2026-10-08），页面版本 `20261008-0832`，显示发布时间 `2026-10-08 08:32`。生产源码 SHA：`f156b1ade312b58dab6c6e28ca03ef9601ca516c`；后续纯文档提交不代表重新部署。
 
 GitHub 负责源码、提交和发布审计；Sites Worker 负责线上页面、API 和 D1 数据。GitHub Pages 不是当前生产入口。
 
