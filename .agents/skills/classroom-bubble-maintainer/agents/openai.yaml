@@ -1,0 +1,4 @@
+interface:
+  display_name: "课堂气泡维护"
+  short_description: "安全诊断、恢复、测试并发布课堂气泡赋分平台的专用流程"
+  default_prompt: "Use $classroom-bubble-maintainer to diagnose and safely fix the classroom bubble platform."
