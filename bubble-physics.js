@@ -4,9 +4,20 @@
   function step(nodes,dt,{width,ground,gravityX=0,gravityY=95}){
     dt=Math.max(0,Math.min(.025,dt));if(!dt)return;
     const right=Math.max(4,width-112),g=Math.hypot(gravityX,gravityY)||1;
-    const supported=n=>{
+    const supportCache=new Map();
+    const supported=(n,seen=new Set())=>{
+      if(supportCache.has(n))return supportCache.get(n);
+      if(seen.has(n))return false;
       if(gravityY>0&&n.y>=ground-.5||gravityY<0&&n.y<=5.5||gravityX<0&&n.x<=4.5||gravityX>0&&n.x>=right-.5)return true;
-      return nodes.some(o=>{if(o===n)return false;const dx=o.x-n.x,dy=o.y-n.y,d=Math.hypot(dx,dy);return d<100.8&&d>0&&(dx*gravityX+dy*gravityY)/(d*g)>.3});
+      // One sloping contact is not a stable resting place: gravity must roll
+      // the circle down it. Sleep only with balanced, grounded supports.
+      const branch=new Set(seen);branch.add(n);let left=Infinity,rightSide=-Infinity;
+      for(const o of nodes){if(o===n)continue;const dx=o.x-n.x,dy=o.y-n.y,d=Math.hypot(dx,dy);
+        if(d>=100.8||!d||(dx*gravityX+dy*gravityY)/(d*g)<=.3)continue;
+        if(!o.hover&&!supported(o,branch))continue;
+        const side=(dx*gravityY-dy*gravityX)/(d*g);left=Math.min(left,side);rightSide=Math.max(rightSide,side);
+      }
+      const stable=left<=.02&&rightSide>=-.02;supportCache.set(n,stable);return stable;
     };
     for(const n of nodes){
       n._startX=n.x;n._startY=n.y;
@@ -39,10 +50,11 @@
       }
     }
     nodes.forEach(bounds);
+    supportCache.clear();
     for(const n of nodes){
       if(n.hover||n.sleeping)continue;
       const support=supported(n);
-      if(support){n.vx*=Math.pow(.8,dt*60);n.vy*=Math.pow(.8,dt*60)}
+      if(support&&Math.hypot(n.vx,n.vy)<8){n.vx*=Math.pow(.8,dt*60);n.vy*=Math.pow(.8,dt*60)}
       if(support&&Math.hypot(n.vx,n.vy)<8&&Math.hypot(n.x-n._startX,n.y-n._startY)<.2)n.quietTime=(n.quietTime||0)+dt;else n.quietTime=0;
       if(n.quietTime>=.8){n.sleeping=true;n.vx=n.vy=0;n.sleepX=n.x;n.sleepY=n.y;n.sleepGX=gravityX;n.sleepGY=gravityY}
     }

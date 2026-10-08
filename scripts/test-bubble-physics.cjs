@@ -16,3 +16,13 @@ const denseWorld={...world,width:1400,ground:850},dense=Array.from({length:52},(
 assert(dense.every(n=>n.sleeping));const snapshot=dense.map(n=>[n.x,n.y]);simulate(dense,10,denseWorld);assert.deepEqual(dense.map(n=>[n.x,n.y]),snapshot);
 assert(dense.every(n=>Number.isFinite(n.x)&&Number.isFinite(n.y)&&n.y<=denseWorld.ground));
 console.log('PASS floor rest at 30/60/120Hz, stack rest, support removal, impulse and tilt wake, dense 52 bubble rest');
+// A circle on one side of another must roll away, not sleep on the slope.
+for(const side of [-1,1]){
+ const base=ball(400,500),upper=ball(400+side*40,500-Math.sqrt(10000-1600));
+ simulate([base,upper],12);assert(Math.abs(upper.x-base.x)>98,'sloping contact should roll to the side');assert(upper.y>498);
+}
+const dragged=ball(400,500);simulate([dragged],2);dragged.hover=true;dragged.x=500;dragged.y=150;P.step([dragged],1/60,world);assert.equal(dragged.sleeping,false);dragged.hover=false;P.step([dragged],1/60,world);assert(dragged.y>150,'released drag must resume falling');
+const fs=require('node:fs'),page=fs.readFileSync(require('node:path').join(__dirname,'../cloud.html'),'utf8');
+assert(!page.includes("mouseenter',()=>n.hover=true"),'mouse hover must not freeze physics');
+assert(!page.includes("n.hover=e.pointerType==='mouse'"),'mouse release must not leave drag locked');
+console.log('PASS left/right rolling, sleeping drag release and non-freezing mouse handlers');
