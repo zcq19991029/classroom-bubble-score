@@ -11,6 +11,9 @@ const sourceFiles = [
   ["/d1-cloud.js", "application/javascript; charset=utf-8", "d1-cloud.js"],
   ["/schedule-manager.js", "application/javascript; charset=utf-8", "schedule-manager.js"],
   ["/feedback.js", "application/javascript; charset=utf-8", "feedback.js"],
+  ["/bubble-physics.js", "application/javascript; charset=utf-8", "bubble-physics.js"],
+  ["/bubble-feedback.js", "application/javascript; charset=utf-8", "bubble-feedback.js"],
+  ["/bubble-feedback.css", "text/css; charset=utf-8", "bubble-feedback.css"],
   ["/校徽背景.png", "image/png", "校徽背景.png"],
   ["/version.json", "application/json; charset=utf-8", "version.json"],
 ];

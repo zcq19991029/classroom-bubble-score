@@ -1,0 +1,11 @@
+.bubble-feedback{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:3}
+.feedback-face{font-size:48px;line-height:1;animation:feedback-face-in 1s ease-out both;filter:drop-shadow(0 3px 4px #ffffffb0)}
+.bubble-wrap.feedback-plus .emoji,.bubble-wrap.feedback-minus .emoji,#stage.scoring-unlocked .bubble-wrap.feedback-plus .bubble-identity,#stage.scoring-unlocked .bubble-wrap.feedback-minus .bubble-identity{visibility:hidden}
+.bubble-wrap.feedback-plus .bubble{animation:feedback-grow 1s ease-out both}
+.bubble-wrap.feedback-minus .bubble{animation:feedback-sad 1s ease-out both}
+.feedback-star{position:absolute;left:50%;top:50%;font-size:23px;line-height:1;color:#ffc62f;text-shadow:0 0 6px #fff,0 0 12px #ffcb45;animation:feedback-star 1s ease-out both;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-53px)}
+@keyframes feedback-grow{0%,100%{transform:scale(1)}30%{transform:scale(1.25)}65%{transform:scale(1.07)}}
+@keyframes feedback-sad{0%,100%{transform:scale(1)}35%{transform:scale(.82) rotate(-4deg)}65%{transform:scale(.92) rotate(3deg)}}
+@keyframes feedback-face-in{0%{opacity:0;transform:scale(.7)}18%,78%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.95)}}
+@keyframes feedback-star{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-42px) scale(.4)}25%,55%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-74px) scale(1.3)}}
+@media(prefers-reduced-motion:reduce){.feedback-face,.feedback-star,.bubble-wrap.feedback-plus .bubble,.bubble-wrap.feedback-minus .bubble{animation:none}.feedback-star{opacity:.8}}

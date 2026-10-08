@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><title>气泡静止验收（无学生数据）</title>
+<style>body{margin:0;background:#fff7fa;font:16px system-ui;color:#433644}header{padding:14px}button{padding:8px 16px;border:0;border-radius:12px;background:#ee2436;color:white;cursor:pointer}#stage{height:calc(100vh - 100px);position:relative;overflow:hidden}.ball{position:absolute;width:100px;height:100px;border-radius:50%;background:radial-gradient(at 35% 30%,#fff,#fff3,#d9e9ff);border:2px solid #eeadc6;display:grid;place-items:center;box-sizing:border-box;font-size:28px;touch-action:none;user-select:none;cursor:grab}#status{margin:0 14px}</style>
+<header><strong>气泡静止验收（本地测试，无账号/学生数据）</strong> <button id="reset">重新落下</button> <button id="tilt">横向推动</button></header><p id="status" role="status"></p><div id="stage"></div>
+<script src="/bubble-physics.js"></script><script>
+const stage=document.querySelector('#stage'),status=document.querySelector('#status');let nodes=[],last=performance.now(),gx=0;
+function reset(){gx=0;stage.replaceChildren();nodes=Array.from({length:12},(_,i)=>{const el=document.createElement('div');el.className='ball';el.textContent=String(i+1);stage.append(el);const n={el,x:20+i%4*105,y:10+Math.floor(i/4)*105,vx:0,vy:0};let grab;
+el.onpointerdown=e=>{n.hover=true;BubblePhysics.wake(n);n.vx=n.vy=0;grab={x:e.clientX-n.x,y:e.clientY-n.y};el.setPointerCapture(e.pointerId)};el.onpointermove=e=>{if(!n.hover)return;n.x=e.clientX-grab.x;n.y=e.clientY-grab.y};el.onpointerup=el.onpointercancel=()=>n.hover=false;return n})}
+document.querySelector('#reset').onclick=reset;document.querySelector('#tilt').onclick=()=>gx=gx?0:150;
+function frame(now){BubblePhysics.step(nodes,(now-last)/1000,{width:stage.clientWidth,ground:Math.max(80,stage.clientHeight-142),gravityX:gx,gravityY:95});last=now;nodes.forEach(n=>n.el.style.transform=`translate3d(${n.x}px,${n.y}px,0)`);status.textContent=`静止 ${nodes.filter(n=>n.sleeping).length} / ${nodes.length} · 可拖动重新唤醒`;requestAnimationFrame(frame)}reset();requestAnimationFrame(frame);
+</script>

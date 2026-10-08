@@ -74,7 +74,7 @@
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-07 22:13</button></small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-08 08:22</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -221,10 +221,13 @@
 
 <script src="xlsx.full.min.js"></script>
 <script src="schedule-manager.js"></script>
+<link rel="stylesheet" href="bubble-feedback.css">
+<script src="bubble-physics.js"></script>
+<script src="bubble-feedback.js"></script>
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20261007-2213',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20261008-0822',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{
@@ -274,7 +277,7 @@
       el.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();clearTimeout(n.timer);if(!searchAllows(n))return;if(!scoringUnlocked){toast('加分已锁定，请先点顶部“加分已锁”');return}if(undoLatestAdd(n.s.id,currentLesson))keepScoreUnlocked()});
       el.addEventListener('contextmenu',e=>{e.preventDefault();if(!searchAllows(n))return;clearTimeout(n.timer);customStudentId=s.id;document.querySelector('#customName').textContent=shortNo(s.studentNo,i)+' '+s.name;openModal('customModal')});
     });applySearch();renderDuty();updateScoreViewButton();save();setTimeout(()=>document.querySelector('#hint').classList.add('hide'),5000)}
-  function adjust(n,delta,source='课堂气泡'){delta=Number(delta);const limit=lessonTaskLimit(currentLesson),earned=lessonNetScore(n.s,currentLesson);if(delta>0&&limit!=null&&earned>=limit){toast(`${n.s.name} 本节已完成 ${limit} 个任务，不能重复加分`);return}if(delta>0&&limit!=null)delta=Math.min(delta,limit-earned);n.s.score=Number(n.s.score||0)+delta;n.el.classList.remove('up','down');void n.el.offsetWidth;n.el.classList.add(delta>0?'up':'down');setTimeout(()=>n.el.classList.remove('up','down'),520);
+  function adjust(n,delta,source='课堂气泡'){delta=Number(delta);const limit=lessonTaskLimit(currentLesson),earned=lessonNetScore(n.s,currentLesson);if(delta>0&&limit!=null&&earned>=limit){toast(`${n.s.name} 本节已完成 ${limit} 个任务，不能重复加分`);return}if(delta>0&&limit!=null)delta=Math.min(delta,limit-earned);n.s.score=Number(n.s.score||0)+delta;BubbleFeedback.play(n.el,delta);
     n.vy-=delta>0?150:35;n.vx+=(Math.random()-.5)*190;nodes.forEach(o=>{if(o!==n){const dx=o.x-n.x,dy=o.y-n.y,d=Math.hypot(dx,dy)||1;if(d<260){const f=(260-d)/260*120;o.vx+=dx/d*f;o.vy+=dy/d*f}}});
     const fly=document.createElement('div');fly.className='float-score '+(delta>0?'plus':'minus');fly.textContent=(delta>0?'+':'')+delta;fly.style.left=(n.x+38)+'px';fly.style.top=(n.y+3)+'px';stage.appendChild(fly);setTimeout(()=>fly.remove(),850);
     const shock=document.createElement('div');shock.className='shock';shock.style.left=(n.x+52)+'px';shock.style.top=(n.y+52)+'px';stage.appendChild(shock);setTimeout(()=>shock.remove(),600);
@@ -291,8 +294,7 @@
   window.addEventListener('deviceorientation',e=>{if(!motionEnabled)return;if(Date.now()-lastMotionGravity<800){e.stopImmediatePropagation();return}const gamma=Math.max(-45,Math.min(45,Number(e.gamma)||0)),beta=Math.max(-45,Math.min(45,Number(e.beta)||0));let angle=((screen.orientation?.angle??window.orientation??0)%360+360)%360;if(innerWidth>innerHeight&&(angle===0||angle===180))angle=(angle+90)%360;let gx=gamma,gy=beta;if(angle===90){gx=-beta;gy=gamma}else if(angle===180){gx=-gamma;gy=-beta}else if(angle===270){gx=beta;gy=-gamma}gravityX=-gx*6;gravityY=gy*6;e.stopImmediatePropagation()},true);
   document.querySelector('#motionBtn').addEventListener('click',()=>{try{if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function')DeviceMotionEvent.requestPermission()}catch(_){}},true);
   function tick(now){if(!running){lastTime=now;requestAnimationFrame(tick);return}const dt=Math.min(.025,(now-lastTime)/1000);lastTime=now;const W=stage.clientWidth,H=stage.clientHeight,ground=Math.max(80,H-142);
-    nodes.forEach(n=>{if(n.hover)return;n.phase+=dt*n.wobble;n.vx+=(Math.sin(n.phase)*13+gravityX)*dt;n.vy+=gravityY*dt;n.vx*=.997;n.vy*=.997;n.vy=Math.max(-240,Math.min(n.vy,240));n.x+=n.vx*dt;n.y+=n.vy*dt;if(n.x<4){n.x=4;n.vx=Math.abs(n.vx)*.8}else if(n.x>W-112){n.x=W-112;n.vx=-Math.abs(n.vx)*.8}if(n.y<5){n.y=5;n.vy=Math.abs(n.vy)*.76}else if(n.y>ground){n.y=ground;n.vy=-Math.abs(n.vy)*.7;if(Math.abs(n.vy)<24)n.vy=-30-Math.random()*24}});
-    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){const a=nodes[i],b=nodes[j],dx=(b.x-a.x),dy=(b.y-a.y),dist=Math.hypot(dx,dy)||1,min=100;if(dist<min){const nx=dx/dist,ny=dy/dist,overlap=min-dist;a.x-=nx*overlap/2;a.y-=ny*overlap/2;b.x+=nx*overlap/2;b.y+=ny*overlap/2;const rvx=b.vx-a.vx,rvy=b.vy-a.vy,along=rvx*nx+rvy*ny;if(along<0){const impulse=-along*.88;a.vx-=impulse*nx;a.vy-=impulse*ny;b.vx+=impulse*nx;b.vy+=impulse*ny}}}
+    BubblePhysics.step(nodes,dt,{width:W,ground,gravityX,gravityY});
     nodes.forEach(n=>n.el.style.transform=`translate3d(${n.x}px,${n.y}px,0)`);requestAnimationFrame(tick)}
   function openModal(id){if(id==='attendanceModal'||id==='quickAttendanceModal')renderCustomAttendanceModes();document.querySelector('#'+id).classList.add('show');running=false;if(id==='databaseModal'){repairDataShape();try{reconcileScoresFromLogs();refreshScoreDisplays();save()}catch(error){console.error('成绩数据校正失败',error)}renderDatabase();document.querySelector('#page-signedAttendance').innerHTML=signedAttendanceHistory();const totalInput=document.querySelector('[data-setting="attendanceTotalLessons"]');if(totalInput)totalInput.parentElement.childNodes[0].textContent='本学期计划课次 '}}
   function closeModal(id){document.querySelector('#'+id).classList.remove('show');running=!document.querySelector('.overlay.show');lastTime=performance.now()}
@@ -311,7 +313,7 @@
   function reconcileScoresFromLogs(){data.students.forEach(syncStudentScoreFromLogs)}
   function lessonTaskLimit(){return null}
   function lessonNetScore(s,lesson){return data.logs.filter(l=>logBelongsTo(l,s)&&sameLesson(l.lesson,lesson)).reduce((sum,l)=>sum+Number(l.delta||0),0)}
-  function undoLatestAdd(studentId,lesson=currentLesson){const s=data.students.find(x=>x.id===studentId);if(!s)return false;const l=data.logs.filter(x=>logBelongsTo(x,s)&&Number(x.delta)>0&&sameLesson(x.lesson,lesson)).sort((a,b)=>String(b.time).localeCompare(String(a.time)))[0];if(!l){toast(`${s.name} 本节没有可撤销的加分`);return false}if(Number(l.delta)>1)l.delta=Number(l.delta)-1;else data.logs=data.logs.filter(x=>x.id!==l.id);syncStudentScoreFromLogs(s);rebuildLogResults(s.id,s.studentNo);refreshScoreDisplays();save();if(document.querySelector('#databaseModal')?.classList.contains('show'))renderDatabase();toast(`已撤销 ${s.name} 本节最近一次加分`);return true}
+  function undoLatestAdd(studentId,lesson=currentLesson){const s=data.students.find(x=>x.id===studentId);if(!s)return false;const l=data.logs.filter(x=>logBelongsTo(x,s)&&Number(x.delta)>0&&sameLesson(x.lesson,lesson)).sort((a,b)=>String(b.time).localeCompare(String(a.time)))[0];if(!l){toast(`${s.name} 本节没有可撤销的加分`);return false}if(Number(l.delta)>1)l.delta=Number(l.delta)-1;else data.logs=data.logs.filter(x=>x.id!==l.id);syncStudentScoreFromLogs(s);rebuildLogResults(s.id,s.studentNo);refreshScoreDisplays();save();const node=nodes.find(n=>n.s.id===studentId);if(node)BubbleFeedback.play(node.el,-1);if(document.querySelector('#databaseModal')?.classList.contains('show'))renderDatabase();toast(`已撤销 ${s.name} 本节最近一次加分`);return true}
   function parseLogGroupToken(token){try{return JSON.parse(decodeURIComponent(token))}catch(_){return null}}
   function matchesLogGroup(l,g){return g&&logKey(l)===g.key&&(g.studentId?l.studentId===g.studentId:(!l.studentId&&String(l.no)===String(g.no)))}
   function undoStudentLesson(token){const g=parseLogGroupToken(token);if(!g)return;const l=data.logs.filter(x=>matchesLogGroup(x,g)&&Number(x.delta)>0).sort((a,b)=>String(b.time).localeCompare(String(a.time)))[0];if(!l){toast('没有可撤销的加分');return}if(!confirm(`确定撤销 ${l.no} ${l.name} 在本节最近的 1 分吗？`))return;if(Number(l.delta)>1)l.delta=Number(l.delta)-1;else data.logs=data.logs.filter(x=>x.id!==l.id);const s=data.students.find(x=>x.id===l.studentId)||data.students.find(x=>String(x.studentNo)===String(l.no));syncStudentScoreFromLogs(s);rebuildLogResults(l.studentId,l.no);refreshScoreDisplays();save();renderDatabase();toast(`已撤销 ${l.name} 最近的 1 分`)}

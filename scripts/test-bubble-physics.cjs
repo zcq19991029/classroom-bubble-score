@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict'),P=require('../bubble-physics.js');
+const world={width:900,ground:500,gravityX:0,gravityY:95};
+const ball=(x,y,vx=0,vy=0)=>({x,y,vx,vy,hover:false});
+function simulate(nodes,seconds,w=world,hz=60){for(let i=0;i<seconds*hz;i++)P.step(nodes,1/hz,w)}
+for(const hz of [30,60,120]){
+ const n=ball(300,40,5);simulate([n],40,world,hz);assert.equal(n.sleeping,true);assert.equal(n.vy,0);assert.equal(n.y,500);
+ const before=[n.x,n.y];simulate([n],10,world,hz);assert.deepEqual([n.x,n.y],before);
+ n.vy=-150;P.step([n],1/hz,world);assert.equal(n.sleeping,false);assert(n.y<500);
+}
+const stack=[ball(300,500),ball(300,400),ball(300,300)];simulate(stack,40);
+assert(stack.every(n=>n.sleeping));const still=stack.map(n=>[n.x,n.y]);simulate(stack,10);assert.deepEqual(stack.map(n=>[n.x,n.y]),still);
+stack[0].hover=true;stack[0].x=650;P.step(stack,1/60,world);assert.equal(stack[1].sleeping,false);
+const n=ball(300,500);simulate([n],2);P.step([n],1/60,{...world,gravityX:100});assert.equal(n.sleeping,false);assert(n.x>300);
+const pair=[ball(300,500),ball(300,200,0,220)];simulate(pair,15);assert(pair.every(n=>n.sleeping));assert(pair[1].y<pair[0].y);
+const denseWorld={...world,width:1400,ground:850},dense=Array.from({length:52},(_,i)=>ball(10+(i%8)*95,10+Math.floor(i/8)*90));simulate(dense,90,denseWorld);
+assert(dense.every(n=>n.sleeping));const snapshot=dense.map(n=>[n.x,n.y]);simulate(dense,10,denseWorld);assert.deepEqual(dense.map(n=>[n.x,n.y]),snapshot);
+assert(dense.every(n=>Number.isFinite(n.x)&&Number.isFinite(n.y)&&n.y<=denseWorld.ground));
+console.log('PASS floor rest at 30/60/120Hz, stack rest, support removal, impulse and tilt wake, dense 52 bubble rest');
