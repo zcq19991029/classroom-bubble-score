@@ -22,6 +22,8 @@ GitHub 负责源码、提交和发布审计；Sites Worker 负责线上页面、
 
 鼠标悬停不会固定气泡，拖动松手即恢复运动。单侧斜面接触不是稳定支撑，气泡会向两边滚落；只在有平衡落地支撑时进入静止，避免悬空休眠。
 
+拖拽捕获丢失、切窗及触摸取消会释放固定状态；搜索定位只短暂停留。动画暂停跟随实际弹窗，单帧异常不会终止后续帧。输入恢复回归：`node scripts/test-bubble-input.cjs`。
+
 物理回归：`node scripts/test-bubble-physics.cjs`；本地匿名界面验收文件位于`scripts/physics-preview.html`及`scripts/feedback-preview.html`。真实设备重力传感器另需实测。
 
 1. **本地/公开演示阶段**：`index.html` 提供无需账号的本地浏览器演示，数据主要在 localStorage，适合体验气泡和基础评分。

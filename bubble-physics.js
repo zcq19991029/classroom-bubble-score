@@ -20,6 +20,9 @@
       const stable=left<=.02&&rightSide>=-.02;supportCache.set(n,stable);return stable;
     };
     for(const n of nodes){
+      // UI nodes must not remain fixed after a lost pointerup/capture. Search
+      // positioning is a separately timed hold, never an indefinite hover.
+      if(n.pointerId!==undefined&&n.hover&&!n.dragging&&!(n.holdUntil>Date.now()))n.hover=false;
       n._startX=n.x;n._startY=n.y;
       if(n.hover){wake(n);continue}
       if(n.sleeping&&(Math.hypot(n.vx,n.vy)>.01||Math.hypot(n.x-n.sleepX,n.y-n.sleepY)>.2||Math.hypot(gravityX-n.sleepGX,gravityY-n.sleepGY)>8||!supported(n)||n.x>right||n.y>ground))wake(n);

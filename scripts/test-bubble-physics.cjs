@@ -26,3 +26,6 @@ const fs=require('node:fs'),page=fs.readFileSync(require('node:path').join(__dir
 assert(!page.includes("mouseenter',()=>n.hover=true"),'mouse hover must not freeze physics');
 assert(!page.includes("n.hover=e.pointerType==='mouse'"),'mouse release must not leave drag locked');
 console.log('PASS left/right rolling, sleeping drag release and non-freezing mouse handlers');
+const orphan=ball(300,100);Object.assign(orphan,{pointerId:null,hover:true,dragging:false});simulate([orphan],1);assert.equal(orphan.hover,false);assert(orphan.y>100);
+const expired=ball(300,100);Object.assign(expired,{pointerId:null,hover:true,dragging:false,holdUntil:Date.now()-1});simulate([expired],1);assert(expired.y>100);
+console.log('PASS orphan drag hover and expired search hold recovery');
