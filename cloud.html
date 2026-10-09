@@ -236,6 +236,36 @@
   #groupingModal .group-message{min-height:22px;margin:4px 0 8px;color:#786e7e;font-size:12px}.group-message.ok{color:#18815a}.group-message.error{color:#bf2637}
   #groupingModal .group-layout{display:grid;grid-template-columns:1fr;gap:12px}.group-zone{border:1px solid #d9d7e5;border-radius:18px;padding:10px;background:#fff;transition:.18s;min-width:0}.group-zone header{display:flex;align-items:center;gap:10px;margin-bottom:6px;color:#4a4050}.group-zone header span{color:#8e8397;font-size:12px}.group-zone header label{margin-left:auto;font-size:12px;color:#81768b}.group-zone header input{width:58px;border:1px solid #ddd8e4;border-radius:7px;padding:4px}.public-zone{background:linear-gradient(135deg,#fff,#f5f8ff)}.zone-canvas{height:178px;position:relative;overflow:hidden;border-radius:14px;background:radial-gradient(circle at 18% 18%,#fff,#f1f4ff 70%);border:1px dashed #cfd6f0;touch-action:none}.group-zone:not(.public-zone) .zone-canvas{height:205px;background:linear-gradient(180deg,#f7f8ff,#edf2ff)}.zone-hint{position:absolute;inset:8px auto auto 10px;color:#a6a0b2;font-size:11px;pointer-events:none}.group-bubble{position:absolute;left:0;top:0;width:76px;height:76px;padding:0;display:grid;place-items:center;align-content:center;gap:1px;border:3px solid #b9c9ff;border-radius:50%;background:radial-gradient(circle at 30% 22%,#fff,#e8efff);box-shadow:inset 7px 8px 12px #fff9,0 8px 17px #8192c044;color:#222;cursor:grab;z-index:2;touch-action:none;transition:filter .15s,opacity .15s}.group-bubble:active,.group-bubble.dragging{cursor:grabbing;filter:brightness(1.08);z-index:20}.group-bubble .group-no{font-size:12px;color:#cf2636;font-weight:900}.group-bubble .group-name{font-size:19px;font-weight:900}.group-zone.target-preview{border-color:#6e82df;box-shadow:0 0 0 3px #7186df44;background:#f0f3ff}.group-zone.target-preview .group-bubble{opacity:.55}.group-zone.drop-blocked{border-color:#d92734;box-shadow:0 0 0 3px #d9273444}.group-zone.drop-blocked:after{content:'已达上限';color:#c52939;font-size:12px;margin-left:8px}.committee{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:8px;margin-top:12px}.committee h3{grid-column:1/-1;margin:0;font-size:14px}.committee label{display:grid;gap:4px;font-size:12px;color:#786e7e}.committee select:disabled{background:#f3f1f5;color:#9b93a0}@media(max-width:700px){.committee{grid-template-columns:repeat(2,1fr)}.group-zone:not(.public-zone) .zone-canvas{height:190px}}
 </style>
+<style>
+  /* 分组页复用主页的加分气泡视觉，只保留分组容器的边界和提示。 */
+  #groupingModal .grouping-panel{width:min(1280px,96vw);max-height:92vh;padding:22px;background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(247,248,255,.97));backdrop-filter:blur(16px)}
+  #groupingModal .group-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px}
+  #groupingModal .group-zone{border:1px solid rgba(232,41,50,.10);border-radius:20px;padding:12px;background:rgba(255,255,255,.74);transition:border-color .18s,box-shadow .18s,background .18s;min-width:0}
+  #groupingModal .group-zone header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;color:#4a4050}
+  #groupingModal .group-zone header>div{display:flex;align-items:baseline;gap:9px}
+  #groupingModal .group-zone header span{color:#8e8397;font-size:12px}
+  #groupingModal .group-zone header label{display:flex;align-items:center;gap:5px;color:#81768b;font-size:12px}
+  #groupingModal .group-zone header input{width:58px;border:1px solid #ddd8e4;border-radius:8px;padding:5px 6px;background:#fff}
+  #groupingModal .public-zone{background:radial-gradient(ellipse at 50% 20%,rgba(255,255,255,.98),rgba(255,246,248,.76) 55%,rgba(247,251,255,.84));}
+  #groupingModal .zone-canvas{position:relative;height:clamp(260px,34vh,430px);overflow:hidden;border-radius:17px;background:radial-gradient(ellipse at 50% 95%,rgba(255,255,255,.97),rgba(255,237,240,.45) 50%,rgba(248,251,255,.6));border:1px dashed rgba(232,41,50,.18);touch-action:none}
+  #groupingModal .group-zone:not(.public-zone) .zone-canvas{height:clamp(220px,27vh,330px);background:linear-gradient(145deg,rgba(255,255,255,.86),rgba(245,248,255,.88))}
+  #groupingModal .zone-hint{position:absolute;inset:10px auto auto 12px;color:#a6a0b2;font-size:11px;pointer-events:none;z-index:1}
+  #groupingModal .group-student{z-index:3}
+  #groupingModal .group-student.dragging{z-index:40;cursor:grabbing}
+  #groupingModal .group-student.dragging .bubble{transform:scale(1.09);filter:saturate(1.35) brightness(1.08);box-shadow:inset 9px 12px 18px rgba(255,255,255,.9),inset -13px -16px 24px rgba(94,121,255,.11),0 24px 48px rgba(73,43,69,.23),0 0 0 1px rgba(255,255,255,.92)}
+  #groupingModal .group-student .bubble{cursor:grab}
+  #groupingModal .group-student.group-leader .bubble{box-shadow:inset 9px 11px 17px rgba(255,255,255,.88),inset -12px -15px 22px rgba(91,121,255,.1),0 0 0 3px rgba(255,190,55,.78),0 13px 30px rgba(71,48,77,.15)}
+  #groupingModal .group-leader-mark{position:absolute;right:-5px;top:-4px;z-index:4;width:25px;height:25px;display:grid;place-items:center;border-radius:50%;background:#fff3bc;color:#b47600;font-size:14px;box-shadow:0 4px 9px rgba(93,60,15,.16)}
+  #groupingModal .group-zone.target-preview{border-color:#e8737b;box-shadow:0 0 0 3px rgba(232,41,50,.13);background:rgba(255,246,247,.9)}
+  #groupingModal .group-zone.target-preview .group-student:not(.dragging){opacity:.78}
+  #groupingModal .group-zone.drop-blocked{border-color:#d92734;box-shadow:0 0 0 3px rgba(217,39,52,.16);background:rgba(255,239,241,.94)}
+  #groupingModal .group-zone.drop-blocked header:after{content:'已达上限';color:#c52939;font-size:12px;margin-left:8px}
+  #groupingModal .committee{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:8px;margin-top:12px}
+  #groupingModal .committee h3{grid-column:1/-1;margin:0;font-size:14px}
+  #groupingModal .committee label{display:grid;gap:4px;font-size:12px;color:#786e7e}
+  #groupingModal .committee select:disabled{background:#f3f1f5;color:#9b93a0}
+  @media(max-width:700px){#groupingModal .grouping-panel{padding:14px}#groupingModal .group-layout{grid-template-columns:1fr}#groupingModal .committee{grid-template-columns:repeat(2,1fr)}#groupingModal .zone-canvas{height:300px}#groupingModal .group-zone:not(.public-zone) .zone-canvas{height:240px}}
+</style>
 <script src="grouping-model.js"></script>
 <script src="grouping.js"></script>
 <script src="committee-home.js"></script>

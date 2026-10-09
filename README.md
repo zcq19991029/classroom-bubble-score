@@ -13,6 +13,8 @@
 - GitHub 源码：[zcq19991029/classroom-bubble-score](https://github.com/zcq19991029/classroom-bubble-score)
 - Sites 当前发布已成功（2026-10-09），页面版本 `20261009-1240`；已核对保存版本、源码 SHA 与部署结果。
 
+分组页使用主页同款渐变气泡、表情、分数角标和姓名标签。页面默认锁定，解锁后可用鼠标在公共池和小组之间拖动；拖动时目标组会高亮，满员组会阻止放入，长按组内气泡可设置或取消组长。
+
 GitHub 负责源码、提交和发布审计；Sites Worker 负责 API 和 D1 数据。GitHub Pages 只作为教室网络的静态前端入口，前端通过受限 CORS 和跨站会话调用同一 Worker，不保存学生数据或密钥。
 
 ## 3. 主要发展阶段
