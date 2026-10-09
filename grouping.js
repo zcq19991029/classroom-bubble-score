@@ -1,3 +1,4 @@
+// Grouping UI v2: homepage bubble visual and pointer-capture dragging.
 (function(){
   'use strict';
   const M=window.GroupingModel;
