@@ -10,7 +10,7 @@
 
 - Sites 线上版：[classroom-bubble-score.zcq991029.chatgpt.site](https://classroom-bubble-score.zcq991029.chatgpt.site)
 - GitHub 源码：[zcq19991029/classroom-bubble-score](https://github.com/zcq19991029/classroom-bubble-score)
-- Sites 当前发布：v39（2026-10-08），页面版本 `20261008-0847`，显示发布时间 `2026-10-08 08:47`。生产源码 SHA：`1737b171d688dcf014b9901c1226853a2c9e802d`；后续纯文档提交不代表重新部署。
+- Sites 当前发布：v40（2026-10-09），页面版本 `20261009-1142`，显示发布时间 `2026-10-09 11:42`。生产源码 SHA：`f57b496284b9adb6b338ff7897381464cf0c1b65`；后续文档/验收脚本提交不代表重新部署。
 
 GitHub 负责源码、提交和发布审计；Sites Worker 负责线上页面、API 和 D1 数据。GitHub Pages 不是当前生产入口。
 
@@ -117,7 +117,7 @@ classroom-bubble-score/
 node scripts/build-worker.mjs
 ```
 
-调课回归：`node scripts/test-schedule-manager.cjs`；周历回归：`node scripts/test-school-calendar.cjs`；预设回归：`node scripts/test-adjusted-presets.cjs`。真实课表解析：`node scripts/audit-real-schedule.cjs`（只读本机课表，不写生产）。
+调课回归：`node scripts/test-schedule-manager.cjs`；全班校历回归：`node scripts/test-calendar-batch.cjs`；周历回归：`node scripts/test-school-calendar.cjs`；预设回归：`node scripts/test-adjusted-presets.cjs`。真实课表解析：`node scripts/audit-real-schedule.cjs`（只读本机课表，不写生产；原始展开次数不等于假期取消后的实际次数）。全班备份对比：`node scripts/audit-calendar-state.cjs 修改前工作区.json 修改后班级1.json ...`，只输出汇总，不输出学生记录。
 
 反馈回归：`node scripts/test-feedback.cjs`（Node 24内置SQLite，内存测试库，不写生产）。新增表由`drizzle/0001_teacher_feedback.sql`迁移创建，构建产物包含`dist/.openai/drizzle`，发布时不得遗漏迁移。
 
@@ -152,6 +152,14 @@ git status --short
 Sites v21、v22、v23 的发布状态在本次整理前已由 Sites 返回成功；具体版本内容以 Git SHA 和 Sites 保存版本为准。
 
 ## 9. 已验证与未验证
+
+### 2026-10-09 全班校历验收
+
+- v40成功发布，同SHA归档和保存版本已核对；GitHub main已推送源码。线上五班统一修正后刷新、等待会话及工作区加载，再导出逐班回读对比。
+- 机电2班16次（10/10 1-4节）、机电3班23次（10/10无课，10/8 3-4保留）、电气8班22次、工器1班23次（10/10 9-10节）、工器2班22次；第17周补课保留，测试班未改。
+- 对比原工作区与刷新后六班：学生分数、日志内容、考勤状态、作业、成绩、任务上限和课程进度均不变；只补充明确对应的lessonId，机电3班取消课次归档1条。原日志412条/考勤230条仍在。
+- 线上预览10/10→10/11同时列出机电2班和工器1班，取消不提交；再次校历核对显示“所有目标班级均无需调整”。没有把测试预览保存到真实课表。
+- 网络失败、并发拒绝和未登录由隔离模拟验证；未在生产制造网络失败，未用第二教师账号/第二台设备做全班调课写入测试。
 
 ### 当前验收摘要（2026-10-07，优先于下方早期文档重建记录）
 
