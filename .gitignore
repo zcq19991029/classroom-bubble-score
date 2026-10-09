@@ -2,3 +2,8 @@
 tmp/*.tar.gz
 tmp/*.jpg
 tmp/*.png
+
+.playwright-cli/
+tmp/sites-stage/
+tmp/*.cjs
+tmp/*.py
