@@ -12,7 +12,7 @@
   const q=s=>panel.querySelector(s);
   let teacher=null,scope='mine',generation=0,busy=false,opener=null;
   const message=(text,success=false)=>{q('#feedbackMessage').textContent=text;q('#feedbackMessage').classList.toggle('success',success)};
-  const api=async(path,options={})=>{const r=await fetch(path,{credentials:'same-origin',cache:'no-store',...options,headers:{'content-type':'application/json'}});const data=await r.json();if(!r.ok)throw Error(data.error||'请求失败');return data};
+  const api=(path,options={})=>window.classroomApi(path,options);
   const badge=n=>{entry.replaceChildren(document.createTextNode(teacher?.isAdmin?'反馈管理':'问题反馈'));if(n){const b=document.createElement('span');b.className='feedback-count';b.textContent=n>99?'99+':String(n);entry.append(b)}entry.title=n?`${n}条未读反馈或回复`:'提交建议、查看处理结果'};
   function modes(){q('#feedbackInbox').hidden=!teacher?.isAdmin;q('#feedbackForm').hidden=scope==='all';q('#feedbackMine').setAttribute('aria-pressed',String(scope==='mine'));q('#feedbackInbox').setAttribute('aria-pressed',String(scope==='all'))}
   function node(tag,text,css){const n=document.createElement(tag);n.textContent=text;if(css)n.className=css;return n}

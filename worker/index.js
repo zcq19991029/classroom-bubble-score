@@ -28,16 +28,21 @@ function parseCookies(request) {
   }).filter((entry) => entry.length));
 }
 
-function cookieHeader(token, maxAge = SESSION_DAYS * 86400) {
+function cookieHeader(token, maxAge = SESSION_DAYS * 86400, crossSite = false) {
   // GitHub Pages is a separate site from the Worker. SameSite=None keeps the
   // teacher session available to credentialed cross-origin API requests.
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=None`;
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=${crossSite ? 'None' : 'Lax'}`;
 }
 
 const CORS_ORIGINS = new Set([
   "https://zcq19991029.github.io",
   "https://classroom-bubble-score.zcq991029.chatgpt.site",
 ]);
+
+function allowedOrigin(request) {
+  const origin=request.headers.get('origin');
+  return origin===new URL(request.url).origin || CORS_ORIGINS.has(origin);
+}
 
 function corsHeaders(request) {
   const origin = request.headers.get("origin") || "";
@@ -48,7 +53,7 @@ function corsHeaders(request) {
     "access-control-max-age": "600",
     "vary": "Origin",
   };
-  if (CORS_ORIGINS.has(origin) || /^https?:\/\/localhost(?::\d+)?$/.test(origin)) {
+  if (allowedOrigin(request)) {
     headers["access-control-allow-origin"] = origin;
   }
   return headers;
@@ -246,7 +251,6 @@ async function bootstrapTeacher(db, input, env) {
 async function handleApi(request, env) {
   if (!env.DB) return json({ error: "Sites D1 绑定 DB 不可用" }, { status: 503 });
   const db = env.DB;
-  await ensureInviteTable(db);
   const url = new URL(request.url);
   const pathname = url.pathname;
   if (request.method === "GET" && pathname === "/api/health") {
@@ -257,13 +261,13 @@ async function handleApi(request, env) {
     const body = await request.json().catch(() => ({}));
     const result = await bootstrapTeacher(db, body, env);
     if (result.error) return json({ error: result.error }, { status: result.status });
-    return json({ ok: true, teacher: publicTeacher(result.teacher), needsMigration: result.needsMigration }, { headers: { "set-cookie": cookieHeader(result.session.token) } });
+    return json({ ok: true, teacher: publicTeacher(result.teacher), needsMigration: result.needsMigration }, { headers: { "set-cookie": cookieHeader(result.session.token, undefined, request.headers.get('origin')==='https://zcq19991029.github.io') } });
   }
   if (pathname === "/api/auth/register" && request.method === "POST") {
     const body = await request.json().catch(() => ({}));
     const result = await registerWithInvite(db, body);
     if (result.error) return json({ error: result.error }, { status: result.status });
-    return json({ ok: true, teacher: publicTeacher(result.teacher) }, { headers: { "set-cookie": cookieHeader(result.session.token) } });
+    return json({ ok: true, teacher: publicTeacher(result.teacher) }, { headers: { "set-cookie": cookieHeader(result.session.token, undefined, request.headers.get('origin')==='https://zcq19991029.github.io') } });
   }
   if (pathname === "/api/auth/session" && request.method === "GET") {
     const teacher = await sessionTeacher(request, db);
@@ -272,7 +276,7 @@ async function handleApi(request, env) {
   if (pathname === "/api/auth/logout" && request.method === "POST") {
     const token = parseCookies(request)[SESSION_COOKIE];
     if (token) await db.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await digestHex(token)).run();
-    return json({ ok: true }, { headers: { "set-cookie": cookieHeader("", 0) } });
+    return json({ ok: true }, { headers: { "set-cookie": cookieHeader("", 0, request.headers.get('origin')==='https://zcq19991029.github.io') } });
   }
   if (pathname === "/api/migrate" && request.method === "POST") {
     const raw = await request.text();
@@ -301,7 +305,6 @@ async function handleApi(request, env) {
   if (!teacher) return json({ error: "请先登录 Sites 教师账号" }, { status: 401 });
   if (pathname === '/api/feedback' || pathname.startsWith('/api/feedback/')) {
     const owner = String(teacher.email || '').toLowerCase() === OWNER_EMAIL;
-    if (request.method !== 'GET' && request.headers.get('origin') !== url.origin) return json({error:'反馈请求来源不正确'}, {status:403});
     const all = url.searchParams.get('scope') === 'all';
     if (all && !owner) return json({error:'仅所有者管理员可查看全部反馈'}, {status:403});
     if (pathname === '/api/feedback' && request.method === 'GET') {
@@ -398,7 +401,15 @@ export default {
     const url = new URL(request.url);
     if (url.pathname.startsWith("/api/")) {
       const cors = corsHeaders(request);
-      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+      if (request.method === "OPTIONS") {
+        const method=request.headers.get('access-control-request-method')||'GET';
+        const headers=(request.headers.get('access-control-request-headers')||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+        if(!allowedOrigin(request)||!['GET','POST','PUT','PATCH'].includes(method)||headers.some(h=>h!=='content-type')) return withCors(json({error:'请求来源或预检无效'}, {status:403}),cors);
+        return new Response(null, { status: 204, headers: cors });
+      }
+      // CORS is a browser response policy, not a write permission check.
+      // SameSite=None sessions must reject foreign/simple form requests too.
+      if(request.method!=='GET'&&(!allowedOrigin(request)||!(request.headers.get('content-type')||'').toLowerCase().startsWith('application/json'))) return withCors(json({error:'请求来源或格式不正确'}, {status:403}),cors);
       try { return withCors(await handleApi(request, env), cors); }
       catch (error) { console.error("api failure", error); return withCors(json({ error: "服务器处理失败，数据未写入" }, { status: 500 }), cors); }
     }

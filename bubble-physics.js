@@ -1,9 +1,9 @@
 /* Dissipative contacts and sleeping; no periodic/random force at rest. */
 (function(root){
   const wake=n=>{n.sleeping=false;n.quietTime=0};
-  function step(nodes,dt,{width,ground,gravityX=0,gravityY=95}){
+  function step(nodes,dt,{width,ground,gravityX=0,gravityY=95,nodeWidth=112,diameter=100}){
     dt=Math.max(0,Math.min(.025,dt));if(!dt)return;
-    const right=Math.max(4,width-112),g=Math.hypot(gravityX,gravityY)||1;
+    const right=Math.max(4,width-nodeWidth),g=Math.hypot(gravityX,gravityY)||1;
     const supportCache=new Map();
     const supported=(n,seen=new Set())=>{
       if(supportCache.has(n))return supportCache.get(n);
@@ -13,7 +13,7 @@
       // the circle down it. Sleep only with balanced, grounded supports.
       const branch=new Set(seen);branch.add(n);let left=Infinity,rightSide=-Infinity;
       for(const o of nodes){if(o===n)continue;const dx=o.x-n.x,dy=o.y-n.y,d=Math.hypot(dx,dy);
-        if(d>=100.8||!d||(dx*gravityX+dy*gravityY)/(d*g)<=.3)continue;
+        if(d>=diameter+.8||!d||(dx*gravityX+dy*gravityY)/(d*g)<=.3)continue;
         if(!o.hover&&!supported(o,branch))continue;
         const side=(dx*gravityY-dy*gravityX)/(d*g);left=Math.min(left,side);rightSide=Math.max(rightSide,side);
       }
@@ -43,11 +43,11 @@
       nodes.forEach(bounds);
       for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
         const a=nodes[i],b=nodes[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);
-        if(d>=100)continue;
+        if(d>=diameter)continue;
         const nx=d?dx/d:1,ny=d?dy/d:0,along=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
         if(along < -20){if(a.sleeping&&!a.hover)wake(a);if(b.sleeping&&!b.hover)wake(b)}
         const ma=a.hover||a.sleeping?0:1,mb=b.hover||b.sleeping?0:1,total=ma+mb;if(!total)continue;
-        const correction=Math.max(0,100-d-.02)/total;
+        const correction=Math.max(0,diameter-d-.02)/total;
         a.x-=nx*correction*ma;a.y-=ny*correction*ma;b.x+=nx*correction*mb;b.y+=ny*correction*mb;
         if(along<0){const impulse=-along*(Math.abs(along)>20?1.35:1)/total;a.vx-=impulse*nx*ma;a.vy-=impulse*ny*ma;b.vx+=impulse*nx*mb;b.vy+=impulse*ny*mb}
       }

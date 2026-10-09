@@ -4,7 +4,7 @@ const db=new DatabaseSync(':memory:');
 db.exec(fs.readFileSync('drizzle/0000_sites_teacher_workspace.sql','utf8'));
 db.exec(fs.readFileSync('drizzle/0001_teacher_feedback.sql','utf8').replaceAll('--> statement-breakpoint',''));
 const env={DB:{prepare(sql){let args=[];return {bind(...a){args=a;return this},async first(){return db.prepare(sql).get(...args)||null},async all(){return {results:db.prepare(sql).all(...args)}},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:r.changes}}}}}}};
-const ctx=vm.createContext({crypto:webcrypto,TextEncoder,Response,Request,URL,console,btoa,atob});
+const ctx=vm.createContext({crypto:webcrypto,TextEncoder,Response,Request,Headers,URL,console,btoa,atob});
 vm.runInContext(fs.readFileSync('worker/index.js','utf8').replace('__ASSETS__','{}').replace('export default {','globalThis.WorkerApp = {'),ctx);
 async function run(){
  for(const [id,email] of [['owner','2546605157@qq.com'],['a','a@example.com'],['b','b@example.com']]){
@@ -13,6 +13,8 @@ async function run(){
   db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(hash,id,'2099-01-01','2026-01-01');
  }
  const call=async(who,path,method='GET',body,origin='https://test.site')=>{const r=await ctx.WorkerApp.fetch(new Request('https://test.site'+path,{method,headers:{...(who?{cookie:'d1_sid='+who}:{}),'content-type':'application/json',origin},...(body!==undefined?{body:JSON.stringify(body)}:{})}),env,{});return {status:r.status,...await r.json()}};
+ const preflight=await ctx.WorkerApp.fetch(new Request('https://test.site/api/auth/login',{method:'OPTIONS',headers:{origin:'https://zcq19991029.github.io','access-control-request-method':'POST','access-control-request-headers':'content-type'}}),env,{});
+ assert.equal(preflight.status,204);assert.equal(preflight.headers.get('access-control-allow-origin'),'https://zcq19991029.github.io');assert.equal(preflight.headers.get('access-control-allow-credentials'),'true');
  assert.equal((await call(null,'/api/feedback')).status,401);
  assert.equal((await call('a','/api/feedback?scope=all')).status,403);
  assert.equal((await call('b','/api/feedback?scope=all')).status,403); // is_admin alone never grants feedback access.

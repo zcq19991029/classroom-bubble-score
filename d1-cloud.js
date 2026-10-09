@@ -86,6 +86,7 @@
     if (!response.ok) throw new Error(body.error || `请求失败（${response.status}）`);
     return body;
   };
+  window.classroomApi = api;
   const normalizeClass = value => {
     const item = clone(value);
     if (!item || !Array.isArray(item.students)) return null;
@@ -192,6 +193,8 @@
     try {
       const body = identifier.includes('@') ? { email: identifier, password } : { employeeNo: identifier, password };
       const result = await api('/api/auth/login', { method: 'POST', body: JSON.stringify(body) });
+      try { await api('/api/auth/session'); }
+      catch (_) { throw new Error('浏览器未保存登录会话。跨站 Cookie 可能被阻止，请使用 Sites 备用入口或允许该站点的跨站 Cookie 后重试。'); }
       if (rememberLogin?.checked) localStorage.setItem('teacherCloudRemember', JSON.stringify({ identifier })); else localStorage.removeItem('teacherCloudRemember');
       if (rememberLogin?.checked && navigator.credentials && window.PasswordCredential) {
         try { await navigator.credentials.store(new PasswordCredential({ id: identifier, password, name: '课堂气泡赋分平台' })); } catch (_) {}
