@@ -11,7 +11,7 @@
 - Sites 线上版：[classroom-bubble-score.zcq991029.chatgpt.site](https://classroom-bubble-score.zcq991029.chatgpt.site)
 - GitHub Pages 静态前端：`https://zcq19991029.github.io/classroom-bubble-score/`（入口会打开 `cloud.html`，只托管页面代码；登录、成绩、考勤和分组仍由现有 Worker + D1 提供）。手机/教室网络实测当前 Sites API 健康地址打不开，因此 Pages 不能绕过对 `chatgpt.site` 的网络拦截。
 - GitHub 源码：[zcq19991029/classroom-bubble-score](https://github.com/zcq19991029/classroom-bubble-score)
-- Sites 当前发布：v44（2026-10-09），页面版本 `20261009-1240`，生产源码 SHA：`9e474e39fb49b4a0a86abf8b749bf8cea02629de`；已核对保存版本与部署成功。后续文档提交不代表重新部署。
+- Sites 当前发布：v45（2026-10-09），页面版本 `20261009-1240`，生产源码 SHA：`39430fff2853bbf278ab66a91562c0ed449482a6`；已核对保存版本与部署成功。后续文档提交不代表重新部署。
 
 GitHub 负责源码、提交和发布审计；Sites Worker 负责 API 和 D1 数据。GitHub Pages 只作为教室网络的静态前端入口，前端通过受限 CORS 和跨站会话调用同一 Worker，不保存学生数据或密钥。
 
