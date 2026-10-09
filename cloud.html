@@ -225,6 +225,9 @@
 <link rel="stylesheet" href="bubble-feedback.css">
 <script src="bubble-physics.js"></script>
 <script src="bubble-feedback.js"></script>
+<style>#groupingModal{display:none;position:fixed;inset:0;background:#0006;z-index:9999;align-items:center;justify-content:center}#groupingModal.open{display:flex}.grouping-panel{background:#fff;border-radius:24px;width:min(1100px,94vw);max-height:90vh;overflow:auto;padding:24px;color:#292334}.group-layout{display:grid;grid-template-columns:240px 1fr;gap:20px}.unassigned-list,.group-drop{display:flex;gap:7px;flex-wrap:wrap;padding:10px;border:1px dashed #d4cfe0;border-radius:16px;min-height:100px}.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.group-card{border:1px solid #dcd5e7;border-radius:18px;padding:10px}.group-drop{background:#f3f6ff}.group-bubble{user-select:none;cursor:grab;background:#fff;border:2px solid #b9c9ff;border-radius:999px;padding:8px;font-weight:700}.group-bubble.is-leader{background:#ffe8a6cc;border-color:#e1a92d;transform:scale(1.13)}.group-bubble.is-committee{border-color:#e1b43b;color:#8a5a00}.committee{display:grid;gap:8px}.committee label{display:grid;gap:3px}.grouping-close{float:right;border:0;border-radius:50%;font-size:24px;width:36px;height:36px}@media(max-width:700px){.group-layout{grid-template-columns:1fr}}</style>
+<script src="grouping-model.js"></script>
+<script src="grouping.js"></script>
 <script>
 (() => {
   'use strict';
