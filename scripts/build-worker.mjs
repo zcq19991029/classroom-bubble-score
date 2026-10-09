@@ -17,6 +17,7 @@ const sourceFiles = [
   ["/bubble-feedback.js", "application/javascript; charset=utf-8", "bubble-feedback.js"],
   ["/grouping-model.js", "application/javascript; charset=utf-8", "grouping-model.js"],
   ["/grouping.js", "application/javascript; charset=utf-8", "grouping.js"],
+  ["/committee-home.js", "application/javascript; charset=utf-8", "committee-home.js"],
   ["/bubble-feedback.css", "text/css; charset=utf-8", "bubble-feedback.css"],
   ["/校徽背景.png", "image/png", "校徽背景.png"],
   ["/version.json", "application/json; charset=utf-8", "version.json"],
