@@ -5,5 +5,6 @@ tmp/*.png
 
 .playwright-cli/
 tmp/sites-stage/
+tmp/sites-stage-final/
 tmp/*.cjs
 tmp/*.py
