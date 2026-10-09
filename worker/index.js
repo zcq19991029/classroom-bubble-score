@@ -29,7 +29,35 @@ function parseCookies(request) {
 }
 
 function cookieHeader(token, maxAge = SESSION_DAYS * 86400) {
-  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=Lax`;
+  // GitHub Pages is a separate site from the Worker. SameSite=None keeps the
+  // teacher session available to credentialed cross-origin API requests.
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=None`;
+}
+
+const CORS_ORIGINS = new Set([
+  "https://zcq19991029.github.io",
+  "https://classroom-bubble-score.zcq991029.chatgpt.site",
+]);
+
+function corsHeaders(request) {
+  const origin = request.headers.get("origin") || "";
+  const headers = {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-headers": "content-type",
+    "access-control-allow-methods": "GET,POST,PUT,PATCH,OPTIONS",
+    "access-control-max-age": "600",
+    "vary": "Origin",
+  };
+  if (CORS_ORIGINS.has(origin) || /^https?:\/\/localhost(?::\d+)?$/.test(origin)) {
+    headers["access-control-allow-origin"] = origin;
+  }
+  return headers;
+}
+
+function withCors(response, headers) {
+  const merged = new Headers(response.headers);
+  Object.entries(headers).forEach(([key, value]) => merged.set(key, value));
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers: merged });
 }
 
 function bytesToBase64(bytes) {
@@ -369,8 +397,10 @@ export default {
     void ctx;
     const url = new URL(request.url);
     if (url.pathname.startsWith("/api/")) {
-      try { return await handleApi(request, env); }
-      catch (error) { console.error("api failure", error); return json({ error: "服务器处理失败，数据未写入" }, { status: 500 }); }
+      const cors = corsHeaders(request);
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+      try { return withCors(await handleApi(request, env), cors); }
+      catch (error) { console.error("api failure", error); return withCors(json({ error: "服务器处理失败，数据未写入" }, { status: 500 }), cors); }
     }
     let pathname;
     try { pathname = decodeURIComponent(url.pathname); } catch { return text("Bad request", 400); }

@@ -1,4 +1,11 @@
 <!doctype html>
+<script>
+  // GitHub Pages is the static classroom entry; the Worker-hosted Sites page
+  // keeps the historical anonymous demo at /index.html.
+  if (location.hostname.endsWith('.github.io') && !location.pathname.endsWith('/cloud.html')) {
+    location.replace(new URL('cloud.html', location.href));
+  }
+</script>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />

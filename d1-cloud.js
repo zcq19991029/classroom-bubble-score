@@ -74,8 +74,14 @@
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const setMessage = value => { if (message) message.textContent = value || ''; };
   const setState = (value, type = '', detail = '') => { if (!state) return; state.textContent = value; state.className = `cloud-state ${type}`; state.title = detail || value; };
+  const configuredApiBase = String(window.CLASSROOM_API_BASE || document.querySelector('meta[name="classroom-api-base"]')?.content || '').replace(/\/$/, '');
+  // A Pages copy keeps the UI static while the Worker remains the only data
+  // authority. The hostname check avoids hard-coding a cross-origin request
+  // for the normal Sites page, but permits an explicit override for mirrors.
+  const apiBase = configuredApiBase || (location.hostname.endsWith('.github.io') ? 'https://classroom-bubble-score.zcq991029.chatgpt.site' : '');
   const api = async (path, options = {}) => {
-    const response = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...options, headers: { 'content-type': 'application/json', ...(options.headers || {}) } });
+    const target = /^https?:\/\//i.test(path) ? path : `${apiBase}${path}`;
+    const response = await fetch(target, { credentials: apiBase ? 'include' : 'same-origin', cache: 'no-store', ...options, headers: { 'content-type': 'application/json', ...(options.headers || {}) } });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error || `请求失败（${response.status}）`);
     return body;
