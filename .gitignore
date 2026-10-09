@@ -1,3 +1,4 @@
 # Local publishing archives and screenshots are not source or student backups.
 tmp/*.tar.gz
 tmp/*.jpg
+tmp/*.png

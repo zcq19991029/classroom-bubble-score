@@ -22,6 +22,39 @@
   let syncTimer = 0;
   let syncInFlight = false;
   let scheduleSaving = false;
+  let calendarPreview = null;
+  window.schoolCalendarCloud = {
+    async preview(options){
+      if(!teacher||loading)throw Error('请先等待自动登录和云端同步完成');
+      if(scheduleSaving||syncInFlight)throw Error('正在同步，请稍后重试');
+      if(syncPending){await flush();if(syncPending)throw Error('已有数据尚未保存');}
+      const latest=await api('/api/workspace');
+      if(JSON.stringify(normalizePayload(latest.payload))!==JSON.stringify(cloudPayload))throw Error('云端已变化，请重新加载再预览');
+      const plan=SchoolCalendar.plan(latest.payload,{...options,className:cloudPayload.activeClass});
+      calendarPreview={latest,plan,local:JSON.stringify(cloudPayload)};
+      return {changes:plan.changes};
+    },
+    backup(){
+      if(!calendarPreview)throw Error('请先预览');
+      const url=URL.createObjectURL(new Blob([JSON.stringify(calendarPreview.latest.payload)],{type:'application/json'})),a=document.createElement('a');
+      a.href=url;a.download=`校历修改前-全班备份-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    },
+    cancel(){calendarPreview=null},
+    async save(){
+      if(!teacher||loading||!calendarPreview)throw Error('请重新登录并预览');
+      if(scheduleSaving||syncInFlight)throw Error('正在保存，请勿重复提交');
+      if(syncPending||calendarPreview.local!==JSON.stringify(cloudPayload))throw Error('预览后数据变化，请重新预览');
+      if(!calendarPreview.plan.changes.length)throw Error('没有待修改课次');
+      scheduleSaving=true;clearTimeout(syncTimer);
+      try{
+        const {latest,plan}=calendarPreview;
+        await api('/api/workspace',{method:'PUT',body:JSON.stringify({payload:plan.payload,expectedUpdatedAt:latest.updatedAt})});
+        cloudPayload=normalizePayload(plan.payload);calendarPreview=null;syncPending=false;
+        renderClasses();loading=true;try{window.classroomCloudBridge.setData(clone(cloudPayload.classes[cloudPayload.activeClass]))}finally{loading=false}
+        setState('校历已同步');
+      }catch(e){setState('校历保存失败','error',e.message);throw e}finally{scheduleSaving=false}
+    }
+  };
   window.saveScheduleCloud = async (candidate, original) => {
     if (!teacher || loading) throw new Error('请先登录并等待云端同步完成');
     if (scheduleSaving || syncInFlight) throw new Error('正在同步，请稍后重试');
@@ -222,7 +255,7 @@
     syncPending = true;
     await flush();
   });
-  window.cloudDataChanged = data => { if (!teacher || loading) return; keepCurrent(data); syncPending = true; clearTimeout(syncTimer); syncTimer = setTimeout(flush, 180); };
+  window.cloudDataChanged = data => { if (!teacher || loading || scheduleSaving) return; keepCurrent(data); syncPending = true; clearTimeout(syncTimer); syncTimer = setTimeout(flush, 180); };
   accountBtn?.addEventListener('click', () => { if (!teacher) return; document.querySelector('#profileModal')?.classList.add('show'); });
   document.querySelector('#signOutBtn')?.addEventListener('click', async () => { await api('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => {}); teacher = null; window.classroomFeedback?.setTeacher(null); document.querySelector('#profileModal')?.classList.remove('show'); screen?.classList.add('show'); setState('等待登录'); });
   const remembered = JSON.parse(localStorage.getItem('teacherCloudRemember') || 'null');

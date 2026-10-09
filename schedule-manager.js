@@ -14,22 +14,26 @@
     }return sort(rows);
   }
   function resolve(rows,label){const k=identity(label);const hits=rows.filter(r=>(r.aliases||[]).some(a=>identity(a)===k));return hits.length===1?hits[0].id:null}
-  function prepare(workspace,before,after,labels){
+  function prepare(workspace,before,after,labels,{archiveRemoved=false}={}){
     const next=JSON.parse(JSON.stringify(workspace)), rows=validate(after).map(r=>({...r,aliases:[...(r.aliases||[])]}));
     if(new Set(rows.map(r=>r.id)).size!==rows.length||rows.some(r=>!r.id))throw Error('课次身份重复或缺失');
     const refs=[...(next.logs||[]),...(next.attendance||[])];
     const maps=[next.lessonTaskCounts,next.courseProgress?.actual].filter(Boolean);
-    const oldIds=new Set(before.map(r=>r.id));
+    const archived=cloneRows(workspace.archivedLessons||[]);
+    if(archiveRemoved)for(const r of before)if(!rows.some(x=>x.id===r.id)&&!archived.some(x=>x.id===r.id))archived.push({...r,cancelled:true});
+    const known=[...new Map([...before,...archived].map(r=>[r.id,r])).values()],oldIds=new Set(known.map(r=>r.id));
     for(const ref of [...refs,...maps.flatMap(m=>Object.keys(m).map(lesson=>({lesson})))]){
-      const id=ref.lessonId||resolve(before,ref.lesson);
-      if(!id||!oldIds.has(id)||!rows.some(r=>r.id===id))throw Error('存在无法明确关联的历史课次：'+ref.lesson+'。请先核对，未覆盖原课表');
+      const id=ref.lessonId||resolve(known,ref.lesson);
+      if(!id||!oldIds.has(id)||![...rows,...archived].some(r=>r.id===id))throw Error('存在无法明确关联的历史课次：'+ref.lesson+'。请先核对，未覆盖原课表');
       if(refs.includes(ref))ref.lessonId=id;
     }
     rows.forEach((r,i)=>{const label=labels(r,i);if(!r.aliases.includes(label))r.aliases.push(label)});
-    const owners=new Map();for(const r of rows)for(const a of r.aliases){const k=identity(a);if(owners.has(k)&&owners.get(k)!==r.id)throw Error('新课次名称与历史名称冲突，请核对');owners.set(k,r.id)}
+    const owners=new Map();for(const r of [...rows,...archived])for(const a of r.aliases||[]){const k=identity(a);if(owners.has(k)&&owners.get(k)!==r.id)throw Error('新课次名称与历史名称冲突，请核对');owners.set(k,r.id)}
+    if(archived.length)next.archivedLessons=archived;
     next.lessonSchedule=rows;next.settings.attendanceTotalLessons=rows.length;
     const active=resolve(before,next.lastLesson),activeIndex=rows.findIndex(r=>r.id===active);next.lastLesson=activeIndex>=0?labels(rows[activeIndex],activeIndex):labels(rows[0],0);
     return next;
   }
+  function cloneRows(rows){return JSON.parse(JSON.stringify(rows))}
   const api={identity,sort,validate,resolve,prepare};root.ScheduleManager=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window==='undefined'?globalThis:window);
