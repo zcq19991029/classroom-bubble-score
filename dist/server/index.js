@@ -268,6 +268,7 @@ async function bootstrapTeacher(db, input, env) {
 async function handleApi(request, env) {
   if (!env.DB) return json({ error: "Sites D1 绑定 DB 不可用" }, { status: 503 });
   const db = env.DB;
+  await ensureInviteTable(db);
   const url = new URL(request.url);
   const pathname = url.pathname;
   if (request.method === "GET" && pathname === "/api/health") {
