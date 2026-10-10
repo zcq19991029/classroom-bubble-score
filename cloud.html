@@ -258,16 +258,22 @@
   #groupingModal .zone-canvas{position:relative;height:clamp(360px,48vh,560px);overflow:hidden;border-radius:17px;background:radial-gradient(ellipse at 50% 95%,rgba(255,255,255,.97),rgba(255,237,240,.45) 50%,rgba(248,251,255,.6));border:1px dashed rgba(232,41,50,.18);touch-action:none}
   #groupingModal .group-zone:not(.public-zone) .zone-canvas{height:clamp(190px,23vh,280px);background:linear-gradient(145deg,rgba(255,255,255,.86),rgba(245,248,255,.88))}
   #groupingModal .zone-hint{position:absolute;inset:10px auto auto 12px;color:#a6a0b2;font-size:11px;pointer-events:none;z-index:1}
-  #groupingModal .group-student{z-index:3;width:90px;height:118px}
-  #groupingModal .group-student .bubble{width:84px;height:84px}
-  #groupingModal .group-student .emoji{font-size:34px}
-  #groupingModal .group-student .score{right:-2px;top:4px;min-width:27px;height:27px;padding:0 6px;font-size:11px}
-  #groupingModal .group-student .student-label{max-width:104px;margin-top:5px;padding:4px 8px;font-size:11px}
-  #groupingModal .public-student{width:82px;height:108px}
-  #groupingModal .public-student .bubble{width:76px;height:76px}
-  #groupingModal .public-student .emoji{font-size:30px}
-  #groupingModal .public-student .score{right:-2px;top:3px;min-width:24px;height:24px;padding:0 5px;font-size:10px}
-  #groupingModal .public-student .student-label{max-width:94px;margin-top:4px;padding:3px 7px;font-size:10px}
+  #groupingModal .group-student{z-index:3;width:72px;height:92px}
+  #groupingModal .group-student .bubble{width:64px;height:64px}
+  #groupingModal .group-student .emoji{font-size:26px}
+  #groupingModal .group-student .score{right:-3px;top:1px;min-width:22px;height:22px;padding:0 4px;font-size:10px}
+  #groupingModal .group-student .student-label{max-width:76px;margin-top:3px;padding:3px 6px;font-size:9px}
+  #groupingModal .public-student{width:64px;height:82px}
+  #groupingModal .public-student .bubble{width:58px;height:58px}
+  #groupingModal .public-student .emoji{font-size:24px}
+  #groupingModal .public-student .score{right:-3px;top:1px;min-width:20px;height:20px;padding:0 4px;font-size:9px}
+  #groupingModal .public-student .student-label{max-width:68px;margin-top:3px;padding:2px 5px;font-size:9px}
+  #groupingModal .student-label{white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:2px}
+  #groupingModal .student-label .name-last{font-weight:700}
+  #groupingModal .group-identity{display:none;align-items:center;justify-content:center;gap:3px;font-size:19px;color:#292334}
+  #groupingModal .group-identity span{font-size:12px;font-weight:800;color:#e82932}
+  #groupingModal.editing .group-identity{display:flex}
+  #groupingModal.editing .group-student .emoji{display:none}
   #groupingModal .group-student.dragging{z-index:40;cursor:grabbing}
   #groupingModal .group-student.dragging .bubble{transform:scale(1.09);filter:saturate(1.35) brightness(1.08);box-shadow:inset 9px 12px 18px rgba(255,255,255,.9),inset -13px -16px 24px rgba(94,121,255,.11),0 24px 48px rgba(73,43,69,.23),0 0 0 1px rgba(255,255,255,.92)}
   #groupingModal .group-student .bubble{cursor:grab}
