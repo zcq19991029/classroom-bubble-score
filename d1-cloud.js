@@ -21,8 +21,26 @@
   let syncPending = false;
   let syncTimer = 0;
   let syncInFlight = false;
+  let syncRetryTimer = 0;
   let scheduleSaving = false;
   let calendarPreview = null;
+  const pendingStorageKey = () => {
+    const identity = teacher?.id || teacher?.employeeNo || teacher?.email || 'default';
+    return `teacherCloudPending:${String(identity).replace(/[^a-zA-Z0-9_.@-]/g, '_')}`;
+  };
+  const clone = value => JSON.parse(JSON.stringify(value || {}));
+  const readPending = () => {
+    try {
+      const raw = localStorage.getItem(pendingStorageKey());
+      if (!raw) return null;
+      const value = JSON.parse(raw);
+      return value && value.payload ? value : null;
+    } catch (_) { return null; }
+  };
+  const rememberPending = () => {
+    try { localStorage.setItem(pendingStorageKey(), JSON.stringify({ savedAt: Date.now(), payload: clone(cloudPayload) })); } catch (_) {}
+  };
+  const forgetPending = () => { try { localStorage.removeItem(pendingStorageKey()); } catch (_) {} };
   window.schoolCalendarCloud = {
     async preview(options){
       if(!teacher||loading)throw Error('请先等待自动登录和云端同步完成');
@@ -70,7 +88,6 @@
     } catch(error){setState('课表保存失败','error',error.message);throw error}
     finally{scheduleSaving=false}
   };
-  const clone = value => JSON.parse(JSON.stringify(value || {}));
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const setMessage = value => { if (message) message.textContent = value || ''; };
   const setState = (value, type = '', detail = '') => { if (!state) return; state.textContent = value; state.className = `cloud-state ${type}`; state.title = detail || value; };
@@ -122,10 +139,11 @@
     cloudPayload.activeClass = item.className;
     renderClasses();
   };
-  const writeCloud = async () => api('/api/workspace', { method: 'PUT', body: JSON.stringify({ payload: clone(cloudPayload) }) });
+  const writeCloud = async (options = {}) => api('/api/workspace', { method: 'PUT', body: JSON.stringify({ payload: clone(cloudPayload) }), ...options });
   const flush = async () => {
     if (!teacher || loading || syncInFlight) return;
     syncInFlight = true;
+    clearTimeout(syncRetryTimer);
     try {
       while (syncPending && teacher) {
         syncPending = false;
@@ -135,32 +153,64 @@
         const saveStatus = document.querySelector('#saveStatus');
         if (saveStatus) saveStatus.textContent = `云端已同步 · ${cloudPayload.activeClass}`;
       }
+      if (!syncPending) forgetPending();
     } catch (error) {
       syncPending = true;
+      rememberPending();
       setState('云端保存失败', 'error', error.message);
       setMessage(`云端保存失败：${error.message}`);
+      syncRetryTimer = setTimeout(flush, 5000);
     } finally { syncInFlight = false; }
   };
   const load = async () => {
     loading = true;
     setState('正在同步', 'syncing');
+    let recoveredLocal = false;
     try {
       const result = await api('/api/workspace');
-      cloudPayload = normalizePayload(result.payload);
+      const remotePayload = normalizePayload(result.payload);
+      const pending = readPending();
+      const localClass = normalizeClass(window.classroomCloudBridge.getData());
+      const remoteClass = localClass && remotePayload.classes[localClass.className];
+      const remoteUpdatedAt = Math.max(Number(result.updatedAt) || 0, Number(remoteClass?.updatedAt) || 0);
+      const pendingUpdatedAt = Number(pending?.savedAt) || 0;
+      const localUpdatedAt = Number(localClass?.updatedAt) || 0;
+      if (pending && pendingUpdatedAt > remoteUpdatedAt) {
+        cloudPayload = normalizePayload(pending.payload);
+        recoveredLocal = true;
+      } else {
+        if (pending) forgetPending();
+        cloudPayload = remotePayload;
+        if (localClass && remoteClass && localUpdatedAt > remoteUpdatedAt) {
+          cloudPayload.classes[localClass.className] = localClass;
+          cloudPayload.activeClass = localClass.className;
+          recoveredLocal = true;
+        }
+      }
       if (!Object.keys(cloudPayload.classes).length) {
         keepCurrent(window.classroomCloudBridge.getData());
+        rememberPending();
+        syncPending = true;
         await writeCloud();
+        forgetPending();
       }
       renderClasses();
       const current = cloudPayload.classes[cloudPayload.activeClass];
       if (current) window.classroomCloudBridge.setData(clone(current));
-      setState('云端已同步');
+      if (recoveredLocal) {
+        rememberPending();
+        syncPending = true;
+        setState('正在恢复未同步修改', 'syncing');
+      } else setState('云端已同步');
       const saveStatus = document.querySelector('#saveStatus');
       if (saveStatus) saveStatus.textContent = `云端已同步 · ${cloudPayload.activeClass}`;
     } catch (error) {
       setState('同步失败', 'error', error.message);
       setMessage(`云端数据读取失败：${error.message}`);
-    } finally { loading = false; }
+    } finally {
+      loading = false;
+      if (syncPending && teacher) { clearTimeout(syncTimer); syncTimer = setTimeout(flush, 0); }
+    }
   };
   const applySession = async next => {
     teacher = next && next.teacher ? next.teacher : null;
@@ -264,15 +314,23 @@
     syncPending = true;
     await flush();
   });
-  window.cloudDataChanged = data => { if (!teacher || loading || scheduleSaving) return; keepCurrent(data); syncPending = true; clearTimeout(syncTimer); syncTimer = setTimeout(flush, 180); };
+  window.cloudDataChanged = data => {
+    if (!teacher || loading || scheduleSaving) return;
+    keepCurrent(data);
+    syncPending = true;
+    rememberPending();
+    clearTimeout(syncTimer);
+    setState('正在保存', 'syncing');
+    syncTimer = setTimeout(flush, 180);
+  };
   accountBtn?.addEventListener('click', () => { if (!teacher) return; document.querySelector('#profileModal')?.classList.add('show'); });
   document.querySelector('#signOutBtn')?.addEventListener('click', async () => { await api('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => {}); teacher = null; window.classroomFeedback?.setTeacher(null); document.querySelector('#profileModal')?.classList.remove('show'); screen?.classList.add('show'); setState('等待登录'); });
   const remembered = JSON.parse(localStorage.getItem('teacherCloudRemember') || 'null');
   if (authEmail) { authEmail.type = 'text'; authEmail.placeholder = '邮箱或工号'; }
   if (remembered && authEmail) { authEmail.value = remembered.identifier || ''; if (rememberLogin) rememberLogin.checked = true; }
   state?.addEventListener('click', () => { if (state.classList.contains('error')) alert(`云端同步失败原因：\n\n${state.title || '暂未取得详细错误'}`); });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && syncPending) flush(); });
-  window.addEventListener('pagehide', () => { if (teacher) { keepCurrent(window.classroomCloudBridge.getData()); syncPending = true; flush(); } });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && syncPending) { rememberPending(); flush(); } });
+  window.addEventListener('pagehide', () => { if (teacher) { keepCurrent(window.classroomCloudBridge.getData()); syncPending = true; rememberPending(); flush(); } });
   api('/api/auth/session').then(applySession).catch(() => applySession(null));
   const profileNameInput = document.querySelector('#profileNameInput');
   const profileAvatarInput = document.querySelector('#profileAvatarInput');
