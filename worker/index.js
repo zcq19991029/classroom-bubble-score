@@ -379,11 +379,13 @@ async function handleApi(request, env) {
     if (Object.prototype.hasOwnProperty.call(body, 'expectedUpdatedAt')) {
       const result = await db.prepare("UPDATE workspaces SET payload_json=?,payload_version=?,source='sites-d1',updated_at=? WHERE teacher_id=? AND updated_at=?")
         .bind(JSON.stringify(payload), Number(payload.version || 2), now, teacher.id, body.expectedUpdatedAt).run();
-      if (!result.meta?.changes) return json({ error: "云端已发生变化，请刷新后重新调整课表" }, { status: 409 });
+      if (!result.meta?.changes) return json({ error: "云端已有新版本，本机修改未写入；请保留备份后核对" }, { status: 409 });
       return json({ ok: true, updatedAt: now });
     }
-    await db.prepare("INSERT INTO workspaces(teacher_id,payload_json,payload_version,source,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(teacher_id) DO UPDATE SET payload_json=excluded.payload_json,payload_version=excluded.payload_version,source='sites-d1',updated_at=excluded.updated_at")
+    // Legacy tabs must not overwrite an existing workspace without its revision.
+    const result = await db.prepare("INSERT INTO workspaces(teacher_id,payload_json,payload_version,source,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(teacher_id) DO NOTHING")
       .bind(teacher.id, JSON.stringify(payload), Number(payload.version || 2), "sites-d1", now).run();
+    if (!result.meta?.changes) return json({ error: "页面版本已过期；请先导出本机备份，再刷新后重试" }, { status: 409 });
     return json({ ok: true, updatedAt: now });
   }
   return json({ error: "Not found" }, { status: 404 });

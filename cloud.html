@@ -74,7 +74,7 @@
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-09 12:40</button></small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-10 12:40</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -244,6 +244,9 @@
   #groupingModal .group-tab{border:1px solid rgba(232,41,50,.14);background:rgba(255,255,255,.8);color:#786e7e;border-radius:12px;padding:8px 13px;white-space:nowrap;cursor:pointer;font-size:12px;font-weight:700}
   #groupingModal .group-tab span{color:#a097a3;font-weight:600;margin-left:4px}
   #groupingModal .group-tab.active{background:#feecef;border-color:#ed8790;color:#c52939;box-shadow:0 5px 14px rgba(217,39,52,.10)}
+  #groupingModal .group-tab.target-preview{border-color:#e8737b;box-shadow:0 0 0 3px rgba(232,41,50,.13)}
+  #groupingModal .group-tab.drop-blocked{background:#fff0f2;border-color:#d92734;color:#c52939}
+  #groupingModal .group-drag-layer{position:fixed;inset:0;pointer-events:none;z-index:100}
   #groupingModal .group-columns{display:grid;grid-template-columns:minmax(380px,1fr) minmax(380px,1fr);gap:14px;align-items:stretch}
   #groupingModal .group-zone{border:1px solid rgba(232,41,50,.10);border-radius:20px;padding:12px;background:rgba(255,255,255,.74);transition:border-color .18s,box-shadow .18s,background .18s;min-width:0}
   #groupingModal .group-zone header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;color:#4a4050}
@@ -286,7 +289,7 @@
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20261009-1240',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20261010-1240',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{

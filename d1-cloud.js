@@ -22,11 +22,14 @@
   let syncTimer = 0;
   let syncInFlight = false;
   let syncRetryTimer = 0;
+  let cloudRevision = null;
+  let syncConflict = false;
+  let editGeneration = 0;
   let scheduleSaving = false;
   let calendarPreview = null;
+  const teacherKey = () => String(teacher?.id || teacher?.employeeNo || teacher?.email || 'default');
   const pendingStorageKey = () => {
-    const identity = teacher?.id || teacher?.employeeNo || teacher?.email || 'default';
-    return `teacherCloudPending:${String(identity).replace(/[^a-zA-Z0-9_.@-]/g, '_')}`;
+    return `teacherCloudPending:${teacherKey().replace(/[^a-zA-Z0-9_.@-]/g, '_')}`;
   };
   const clone = value => JSON.parse(JSON.stringify(value || {}));
   const readPending = () => {
@@ -34,16 +37,18 @@
       const raw = localStorage.getItem(pendingStorageKey());
       if (!raw) return null;
       const value = JSON.parse(raw);
-      return value && value.payload ? value : null;
+      return value && value.payload && value.teacherId === teacherKey() ? value : null;
     } catch (_) { return null; }
   };
   const rememberPending = () => {
-    try { localStorage.setItem(pendingStorageKey(), JSON.stringify({ savedAt: Date.now(), payload: clone(cloudPayload) })); } catch (_) {}
+    try { localStorage.setItem(pendingStorageKey(), JSON.stringify({ teacherId: teacherKey(), baseUpdatedAt: cloudRevision, savedAt: Date.now(), payload: clone(cloudPayload) })); return true; }
+    catch (_) { return false; }
   };
   const forgetPending = () => { try { localStorage.removeItem(pendingStorageKey()); } catch (_) {} };
   window.schoolCalendarCloud = {
     async preview(options){
       if(!teacher||loading)throw Error('请先等待自动登录和云端同步完成');
+      if(syncConflict)throw Error('请先导出未同步备份并核对云端冲突');
       if(scheduleSaving||syncInFlight)throw Error('正在同步，请稍后重试');
       if(syncPending){await flush();if(syncPending)throw Error('已有数据尚未保存');}
       const latest=await api('/api/workspace');
@@ -66,7 +71,8 @@
       scheduleSaving=true;clearTimeout(syncTimer);
       try{
         const {latest,plan}=calendarPreview;
-        await api('/api/workspace',{method:'PUT',body:JSON.stringify({payload:plan.payload,expectedUpdatedAt:latest.updatedAt})});
+        const saved = await api('/api/workspace',{method:'PUT',body:JSON.stringify({payload:plan.payload,expectedUpdatedAt:latest.updatedAt})});
+        cloudRevision = saved.updatedAt;
         cloudPayload=normalizePayload(plan.payload);calendarPreview=null;syncPending=false;
         renderClasses();loading=true;try{window.classroomCloudBridge.setData(clone(cloudPayload.classes[cloudPayload.activeClass]))}finally{loading=false}
         setState('校历已同步');
@@ -75,6 +81,7 @@
   };
   window.saveScheduleCloud = async (candidate, original) => {
     if (!teacher || loading) throw new Error('请先登录并等待云端同步完成');
+    if (syncConflict) throw new Error('本机记录与云端有冲突，请先导出未同步备份并核对');
     if (scheduleSaving || syncInFlight) throw new Error('正在同步，请稍后重试');
     scheduleSaving = true; clearTimeout(syncTimer);
     try {
@@ -83,7 +90,8 @@
       const remote=latest.payload?.classes?.[original.className];
       if(JSON.stringify(remote)!==JSON.stringify(cloudPayload.classes[original.className]))throw new Error('云端班级已变化，请刷新后重试');
       const payload=clone(latest.payload);payload.classes[candidate.className]=clone(candidate);
-      await api('/api/workspace',{method:'PUT',body:JSON.stringify({payload,expectedUpdatedAt:latest.updatedAt})});
+      const saved = await api('/api/workspace',{method:'PUT',body:JSON.stringify({payload,expectedUpdatedAt:latest.updatedAt})});
+      cloudRevision = saved.updatedAt;
       cloudPayload=normalizePayload(payload);syncPending=false;setState('云端已同步');renderClasses();
     } catch(error){setState('课表保存失败','error',error.message);throw error}
     finally{scheduleSaving=false}
@@ -100,7 +108,7 @@
     const target = /^https?:\/\//i.test(path) ? path : `${apiBase}${path}`;
     const response = await fetch(target, { credentials: apiBase ? 'include' : 'same-origin', cache: 'no-store', ...options, headers: { 'content-type': 'application/json', ...(options.headers || {}) } });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || `请求失败（${response.status}）`);
+    if (!response.ok) { const error = new Error(body.error || `请求失败（${response.status}）`); error.status = response.status; throw error; }
     return body;
   };
   window.classroomApi = api;
@@ -139,16 +147,24 @@
     cloudPayload.activeClass = item.className;
     renderClasses();
   };
-  const writeCloud = async (options = {}) => api('/api/workspace', { method: 'PUT', body: JSON.stringify({ payload: clone(cloudPayload) }), ...options });
+  const writeCloud = async () => {
+    const body = { payload: clone(cloudPayload) };
+    if (cloudRevision != null) body.expectedUpdatedAt = cloudRevision;
+    const result = await api('/api/workspace', { method: 'PUT', body: JSON.stringify(body) });
+    cloudRevision = result.updatedAt;
+    return result;
+  };
   const flush = async () => {
-    if (!teacher || loading || syncInFlight) return;
+    if (!teacher || loading || syncInFlight || syncConflict) return;
     syncInFlight = true;
     clearTimeout(syncRetryTimer);
     try {
       while (syncPending && teacher) {
         syncPending = false;
+        const generation = editGeneration;
         setState('正在保存', 'syncing');
         await writeCloud();
+        if (generation !== editGeneration || syncPending) { rememberPending(); continue; }
         setState('云端已同步');
         const saveStatus = document.querySelector('#saveStatus');
         if (saveStatus) saveStatus.textContent = `云端已同步 · ${cloudPayload.activeClass}`;
@@ -156,10 +172,11 @@
       if (!syncPending) forgetPending();
     } catch (error) {
       syncPending = true;
-      rememberPending();
-      setState('云端保存失败', 'error', error.message);
+      if (error.status === 409) syncConflict = true;
+      setState(syncConflict ? '同步冲突·本机已保留' : '保存失败·本机已保留', 'error', error.message);
       setMessage(`云端保存失败：${error.message}`);
-      syncRetryTimer = setTimeout(flush, 5000);
+      if (typeof toast === 'function') toast(syncConflict ? '云端已有其他修改，本机记录已保留。点击同步状态导出备份。' : '云端保存失败，记录已留在本机，将自动重试。');
+      if (!syncConflict) syncRetryTimer = setTimeout(flush, 5000);
     } finally { syncInFlight = false; }
   };
   const load = async () => {
@@ -170,28 +187,27 @@
       const result = await api('/api/workspace');
       const remotePayload = normalizePayload(result.payload);
       const pending = readPending();
-      const localClass = normalizeClass(window.classroomCloudBridge.getData());
-      const remoteClass = localClass && remotePayload.classes[localClass.className];
-      const remoteUpdatedAt = Math.max(Number(result.updatedAt) || 0, Number(remoteClass?.updatedAt) || 0);
-      const pendingUpdatedAt = Number(pending?.savedAt) || 0;
-      const localUpdatedAt = Number(localClass?.updatedAt) || 0;
-      if (pending && pendingUpdatedAt > remoteUpdatedAt) {
+      cloudRevision = result.updatedAt ?? null;
+      cloudPayload = remotePayload;
+      syncConflict = false;
+      syncPending = false;
+      if (pending && JSON.stringify(normalizePayload(pending.payload)) === JSON.stringify(remotePayload)) {
+        forgetPending();
+      } else if (pending && pending.baseUpdatedAt === cloudRevision) {
         cloudPayload = normalizePayload(pending.payload);
         recoveredLocal = true;
-      } else {
-        if (pending) forgetPending();
-        cloudPayload = remotePayload;
-        if (localClass && remoteClass && localUpdatedAt > remoteUpdatedAt) {
-          cloudPayload.classes[localClass.className] = localClass;
-          cloudPayload.activeClass = localClass.className;
-          recoveredLocal = true;
-        }
+      } else if (pending) {
+        // A different device may have saved. Retain the outbox without replacing D1.
+        syncConflict = true;
+        cloudPayload = normalizePayload(pending.payload);
+        cloudRevision = pending.baseUpdatedAt;
       }
       if (!Object.keys(cloudPayload.classes).length) {
         keepCurrent(window.classroomCloudBridge.getData());
         rememberPending();
         syncPending = true;
         await writeCloud();
+        syncPending = false;
         forgetPending();
       }
       renderClasses();
@@ -201,12 +217,17 @@
         rememberPending();
         syncPending = true;
         setState('正在恢复未同步修改', 'syncing');
+      } else if (syncConflict) {
+        setState('同步冲突·本机已保留', 'error', '云端已有新版本；点击导出未同步备份，核对后再恢复。');
+        if (typeof toast === 'function') toast('发现本机未同步记录和云端新版本，已保留两份数据。点击同步状态导出备份。');
       } else setState('云端已同步');
       const saveStatus = document.querySelector('#saveStatus');
-      if (saveStatus) saveStatus.textContent = `云端已同步 · ${cloudPayload.activeClass}`;
+      if (saveStatus) saveStatus.textContent = recoveredLocal ? '本机记录已恢复，正在补传' : syncConflict ? '本机备份待恢复' : `云端已同步 · ${cloudPayload.activeClass}`;
+      return true;
     } catch (error) {
       setState('同步失败', 'error', error.message);
       setMessage(`云端数据读取失败：${error.message}`);
+      return false;
     } finally {
       loading = false;
       if (syncPending && teacher) { clearTimeout(syncTimer); syncTimer = setTimeout(flush, 0); }
@@ -221,9 +242,11 @@
       setState('等待登录');
       return;
     }
-    screen?.classList.remove('show');
+    screen?.classList.add('show');
     renderAccountButton();
-    await load();
+    const loaded = await load();
+    if (loaded) screen?.classList.remove('show');
+    return loaded;
   };
   const renderAccountButton = () => {
     window.classroomFeedback?.setTeacher(teacher);
@@ -249,9 +272,10 @@
       if (rememberLogin?.checked && navigator.credentials && window.PasswordCredential) {
         try { await navigator.credentials.store(new PasswordCredential({ id: identifier, password, name: '课堂气泡赋分平台' })); } catch (_) {}
       }
-      await applySession({ teacher: result.teacher });
-      setMessage('');
-      if (typeof toast === 'function') toast('登录成功，已连接 Sites D1');
+      if (await applySession({ teacher: result.teacher })) {
+        setMessage('');
+        if (typeof toast === 'function') toast('登录成功，已连接 Sites D1');
+      }
     } catch (error) { setMessage(error.message); }
     finally { signInBtn.disabled = false; signInBtn.textContent = '登录'; }
   };
@@ -265,7 +289,7 @@
     signInBtn.disabled = true; signInBtn.textContent = '正在注册…'; setMessage('正在验证邀请码…');
     try {
       const result = await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, employeeNo, password, displayName: employeeNo, inviteCode }) });
-      await applySession({ teacher: result.teacher }); setMessage('注册成功，已进入教师云端空间');
+      if (await applySession({ teacher: result.teacher })) setMessage('注册成功，已进入教师云端空间');
     } catch (error) { setMessage(error.message); }
     finally { signInBtn.disabled = false; signInBtn.textContent = registerMode ? '注册账号' : '登录'; }
   };
@@ -311,16 +335,20 @@
     window.classroomCloudBridge.setData(clone(cloudPayload.classes[name]));
     loading = false;
     renderClasses();
+    editGeneration++;
     syncPending = true;
+    rememberPending();
     await flush();
   });
   window.cloudDataChanged = data => {
     if (!teacher || loading || scheduleSaving) return;
     keepCurrent(data);
+    editGeneration++;
     syncPending = true;
-    rememberPending();
+    const backedUp = rememberPending();
+    if (!backedUp && typeof toast === 'function') toast('本机备份失败，请保持页面打开并等待云端同步，或导出备份。');
     clearTimeout(syncTimer);
-    setState('正在保存', 'syncing');
+    setState(!backedUp ? '本机备份失败·待上传' : syncConflict ? '同步冲突·本机已保留' : '正在保存', !backedUp || syncConflict ? 'error' : 'syncing');
     syncTimer = setTimeout(flush, 180);
   };
   accountBtn?.addEventListener('click', () => { if (!teacher) return; document.querySelector('#profileModal')?.classList.add('show'); });
@@ -328,9 +356,20 @@
   const remembered = JSON.parse(localStorage.getItem('teacherCloudRemember') || 'null');
   if (authEmail) { authEmail.type = 'text'; authEmail.placeholder = '邮箱或工号'; }
   if (remembered && authEmail) { authEmail.value = remembered.identifier || ''; if (rememberLogin) rememberLogin.checked = true; }
-  state?.addEventListener('click', () => { if (state.classList.contains('error')) alert(`云端同步失败原因：\n\n${state.title || '暂未取得详细错误'}`); });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && syncPending) { rememberPending(); flush(); } });
-  window.addEventListener('pagehide', () => { if (teacher) { keepCurrent(window.classroomCloudBridge.getData()); syncPending = true; rememberPending(); flush(); } });
+  state?.addEventListener('click', () => {
+    if (syncConflict) {
+      const pending = readPending();
+      if (pending) {
+        const url = URL.createObjectURL(new Blob([JSON.stringify(pending.payload)], { type: 'application/json' }));
+        const a = document.createElement('a'); a.href = url; a.download = `课堂未同步备份-${new Date().toISOString().slice(0,10)}.json`; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } else if (state.classList.contains('error')) { alert(`云端同步失败原因：\n\n${state.title || '暂未取得详细错误'}\n\n本机记录已保留，正在重试。`); flush(); }
+  });
+  window.addEventListener('online', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && syncPending) flush(); });
+  window.addEventListener('pagehide', () => { if (teacher && syncPending && !syncConflict) flush(); });
+  window.addEventListener('beforeunload', event => { if (syncPending || syncInFlight || syncConflict) { event.preventDefault(); event.returnValue = ''; } });
   api('/api/auth/session').then(applySession).catch(() => applySession(null));
   const profileNameInput = document.querySelector('#profileNameInput');
   const profileAvatarInput = document.querySelector('#profileAvatarInput');
