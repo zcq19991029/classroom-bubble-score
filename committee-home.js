@@ -19,6 +19,7 @@
     css.textContent='.bubble-wrap.committee-member{z-index:60!important}.bubble-wrap.committee-member .bubble{transform:scale(1.12);box-shadow:0 0 0 3px rgba(238,184,55,.72),0 15px 35px rgba(209,153,34,.32)}.committee-crown{position:absolute;right:-4px;top:-12px;font-size:24px;z-index:4;filter:drop-shadow(0 2px 2px #fff)}';
     document.head.append(css);
     const stage=document.querySelector('#stage');
+    window.refreshCommitteeHome=apply;
     if(stage){new MutationObserver(apply).observe(stage,{childList:true,subtree:true});setTimeout(apply,500)}
   });
 })();
