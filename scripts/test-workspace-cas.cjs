@@ -29,6 +29,11 @@ async function main(){
   const casPayload = {...payload, classes: {'测试班': {...payload.classes['测试班'], students: [{id:'s1', name:'学生1', score:2}]}}};
   const saved = await call('PUT',{payload:casPayload, expectedUpdatedAt:first.body.updatedAt}); assert.equal(saved.status,200);
   assert.equal((await call('GET')).body.payload.classes['测试班'].students[0].score,2);
+  const newSettings={taskTarget:10,students:{'id:s1':{earned:0,status:'graded',foundation:'makeup',bonus:0,penalty:0}}};
+  const criterionPayload=structuredClone(casPayload);criterionPayload.classes['测试班'].criterionAssessment=newSettings;
+  assert.equal((await call('PUT',{payload:criterionPayload,expectedUpdatedAt:saved.body.updatedAt})).status,200);
+  const restored=(await call('GET')).body.payload;assert.deepEqual(restored.classes['测试班'].criterionAssessment,newSettings);
+  delete restored.classes['测试班'].criterionAssessment;assert.deepEqual(restored,casPayload);
   console.log('PASS Worker workspace CAS: initial insert, legacy overwrite rejection, stale revision rejection, current revision update');
 }
 main().catch(error=>{console.error(error);process.exitCode=1}).finally(()=>db.close());

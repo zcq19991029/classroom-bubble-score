@@ -8,3 +8,4 @@ tmp/sites-stage/
 tmp/sites-stage-final/
 tmp/*.cjs
 tmp/*.py
+tmp/criterion-20261017/

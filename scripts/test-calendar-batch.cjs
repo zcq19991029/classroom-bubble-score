@@ -18,7 +18,7 @@ const single=C.plan(fixed.payload,{from:date,to:'2026-10-15',all:false,className
 const code=fs.readFileSync('d1-cloud.js','utf8'),part=code.slice(code.indexOf('  let calendarPreview ='),code.indexOf('  window.saveScheduleCloud ='));
 async function run(){for(const mode of ['success','failure','conflict','loggedout']){
  let puts=0;const context=vm.createContext({window:{classroomCloudBridge:{setData:()=>{}}},SchoolCalendar:C,URL,Blob,document:{createElement:()=>({click:()=>{}})},setTimeout:()=>{},clearTimeout:()=>{},clone:x=>JSON.parse(JSON.stringify(x)),normalizePayload:x=>x,setState:()=>{},renderClasses:()=>{},api:async(path,opts)=>{if(opts){puts++;assert.equal(JSON.parse(opts.body).expectedUpdatedAt,'r1');if(mode!=='success')throw Error('失败/冲突');return {ok:true}}return {updatedAt:'r1',payload:JSON.parse(original)}}});
- vm.runInContext(`let teacher=${mode==='loggedout'?'null':'{}'},loading=false,scheduleSaving=false,syncInFlight=false,syncPending=false,syncTimer=0,cloudPayload=${original};`+part,context);
+ vm.runInContext(`let teacher=${mode==='loggedout'?'null':'{}'},syncConflict=false,cloudRevision=null,loading=false,scheduleSaving=false,syncInFlight=false,syncPending=false,syncTimer=0,cloudPayload=${original};`+part,context);
  if(mode==='loggedout'){await assert.rejects(context.window.schoolCalendarCloud.preview({repair:true}));continue}
  await context.window.schoolCalendarCloud.preview({repair:true});assert.equal(puts,0);context.window.schoolCalendarCloud.cancel();assert.equal(puts,0);await context.window.schoolCalendarCloud.preview({repair:true});
  if(mode==='success'){await context.window.schoolCalendarCloud.save();assert.equal(puts,1);assert.equal(vm.runInContext('cloudPayload.classes["25机电3班"].lessonSchedule.length',context),23)}

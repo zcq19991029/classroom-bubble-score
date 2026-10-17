@@ -5,6 +5,7 @@ const source = fs.readFileSync(require('node:path').join(__dirname, '../d1-cloud
 const copy = value => JSON.parse(JSON.stringify(value));
 const initial = {version:2,activeClass:'测试班',classes:{'测试班':{className:'测试班',students:[{id:'s1',studentNo:'01',name:'测试学生',score:0}],logs:[],attendance:[],settings:{},updatedAt:1}}};
 function element(){const classes = new Set();return {value:'',style:{},textContent:'',className:'',disabled:false,classList:{add:v=>classes.add(v),remove:v=>classes.delete(v),toggle:()=>{},contains:v=>classes.has(v)},addEventListener(){},setAttribute(){}};}
+initial.classes['测试班'].criterionAssessment={taskTarget:10,students:{'id:s1':{earned:0,status:'graded',foundation:'makeup',bonus:0,penalty:0}}};
 async function settle(){for(let i=0;i<35;i++)await Promise.resolve();}
 function boot(server, storage = new Map(), teacherId='teacher-a') {
   const elements=new Map(), timers=new Map(), events=new Map();let timerId=0;
@@ -34,9 +35,11 @@ function server(){return {payload:copy(initial),revision:'revision-0',writes:0,a
   assert.ok(a.storage.has('teacherCloudPending:teacher-a'));
   let b=boot(s,a.storage);await b.ready();assert.equal(b.data.logs.length,1);await b.timer(0);
   assert.equal(s.payload.classes['测试班'].students[0].score,1);assert.equal(s.payload.classes['测试班'].logs.length,1);assert.equal(b.storage.size,0);
+  assert.deepEqual(s.payload.classes['测试班'].criterionAssessment,initial.classes['测试班'].criterionAssessment);
   // Failed saves retain score + history across a reload, then retry on reconnect.
   s=server();a=boot(s);await a.ready();s.fail=true;a.change();await a.timer(180);
   b=boot(s,a.storage);await b.ready();assert.equal(b.data.logs.length,1);s.fail=false;await b.timer(0);assert.equal(s.writes,1);
+  assert.deepEqual(s.payload.classes['测试班'].criterionAssessment,initial.classes['测试班'].criterionAssessment);
   // Another edit during an in-flight request keeps the newest outbox until both ACKs.
   s=server();a=boot(s);await a.ready();a.change();let resolve;s.defer=new Promise(r=>resolve=r);
   const inFlight=a.timer(180);await settle();a.change();resolve();await inFlight;
