@@ -7,6 +7,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'C:/Users/25466/.cache/c
  let payload={version:2,activeClass:'虚构达标测试班',classes:{虚构达标测试班:{className:'虚构达标测试班',students:[{id:'a',studentNo:'01',name:'虚构甲',emoji:'😊',score:7},{id:'b',studentNo:'02',name:'虚构乙',emoji:'😊',score:9}],logs:[{id:'l1',studentId:'a',delta:7},{id:'l2',studentId:'b',delta:9}],attendance:[],homework:[],examScores:{},settings:{attendanceTotalLessons:2,passScore:60},lessonSchedule:[],courseProgress:{},lessonTaskCounts:{}}}};
  payload.classes.虚构达标测试班.logs.forEach(l=>Object.assign(l,{name:'',no:'',time:'2026-10-01T00:00:00Z'}));
  payload.classes.虚构达标测试班.courseProgress={preset:[{week:1,content:'虚构课程'}],actual:{},sourceName:'隔离测试'};
+ payload.classes.虚构达标测试班.grouping={userConfigured:true,locked:true,groupCount:1,groups:[{id:'group-1',name:'第1组',max:4,studentIds:['a','b'],leaderId:null}],unassignedIds:[],committee:{}};
  const original=JSON.stringify(payload.classes.虚构达标测试班);
  payload.classes['虚构第二班']=structuredClone(payload.classes.虚构达标测试班);payload.classes['虚构第二班'].className='虚构第二班';
  const context=await browser.newContext({viewport:{width:1600,height:1000}});let writes=0;
@@ -32,8 +33,28 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'C:/Users/25466/.cache/c
  fs.mkdirSync('docs/screenshots',{recursive:true});fs.mkdirSync('tmp/criterion-20261017',{recursive:true});
  const download=page.waitForEvent('download');await page.click('[data-criterion-export]');const dl=await download;await dl.saveAs('tmp/criterion-20261017/isolated.csv');assert.match(fs.readFileSync('tmp/criterion-20261017/isolated.csv','utf8'),/预估\/待复核/);
  const popup=page.waitForEvent('popup');await page.click('[data-criterion-print]');const print=await popup;await print.waitForLoadState();assert.match(await print.locator('body').innerText(),/预估\/待复核/);await print.pdf({path:'tmp/criterion-20261017/isolated.pdf',format:'A3',landscape:true});await print.close();
- await page.setViewportSize({width:2400,height:1000});await page.locator('#page-assessment summary').click();await page.screenshot({path:'docs/screenshots/criterion-assessment.png',fullPage:false});
+ await page.setViewportSize({width:2400,height:1000});await page.locator('#page-assessment summary').first().click();await page.screenshot({path:'docs/screenshots/criterion-assessment.png',fullPage:false});
  await page.setViewportSize({width:390,height:844});assert(await page.locator('.assessment-scroll').evaluate(el=>el.scrollWidth>el.clientWidth));
+ // New source entries, automatic project denominator, full reward accumulation and duty undo/redo.
+ await page.setViewportSize({width:1800,height:1000});
+ await page.locator('#databaseModal button').filter({hasText:'×'}).click();await page.locator('#dutyBar button').click();assert.equal(await page.locator('[data-duty-expected]').inputValue(),'2');
+ await page.locator('#databaseModal button').filter({hasText:'×'}).click();await page.click('#groupingEntry');await page.click('.group-lock');await page.click('[data-group-assessment]');assert.equal(await page.locator('[data-duty-group]').inputValue(),'group-1');assert.equal(await page.locator('[data-duty-expected]').inputValue(),'2');
+ const openEntry=async()=>{const d=page.locator('[data-entry-panel]');if(!await d.getAttribute('open').then(x=>x!==null))await d.locator('summary').first().click();};
+ await openEntry();await page.locator('[data-project-name]').fill('接线实训');await page.locator('[data-project-max]').fill('5');await page.click('[data-project-add]');
+ await openEntry();await page.getByText('接线实训 · 满分5',{exact:false}).click();await page.locator('[data-project-student="id:a"]').fill('4');await page.locator('[data-project-student="id:a"]').press('Tab');
+ let read=()=>page.evaluate(()=>{const d=classroomCloudBridge.getData();return CriterionAssessment.calculate(d,d.students.find(s=>s.id==='a'),20,{complete:true})});
+ assert.equal((await read()).regular,92);assert.equal((await read()).target,5);
+ await openEntry();await page.locator('[data-reward-student]').selectOption('id:a');await page.locator('[data-reward-value]').fill('10');await page.click('[data-reward-add]');assert.equal((await read()).bonus,10);assert.equal((await read()).regular,100);
+ await openEntry();await page.click('[data-entry-undo]');assert.equal((await read()).bonus,0);assert.equal((await read()).regular,92);
+ await openEntry();await page.click('[data-entry-redo]');assert.equal((await read()).bonus,10);
+ await openEntry();await page.locator('[data-duty-participants]').fill('3');await page.locator('[data-duty-expected]').fill('4');await page.click('[data-duty-save]');
+ assert.equal((await read()).bonus,13.75);assert.equal(await page.evaluate(()=>Object.values(classroomCloudBridge.getData().criterionAssessment.duties)[0].score),3.75);
+ await openEntry();await page.click('[data-entry-undo]');assert.equal((await read()).bonus,10);await openEntry();await page.click('[data-entry-redo]');assert.equal((await read()).bonus,13.75);
+ await page.waitForTimeout(500);await page.reload();await page.waitForFunction(()=>document.querySelector('#classTitle').textContent==='虚构达标测试班');await page.click('#databaseBtn');assert.equal((await read()).bonus,13.75);
+ const second=await browser.newContext();await second.route('**/api/**',r=>r.fulfill({json:r.request().url().includes('/api/auth/session')?{teacher:{id:'isolated',displayName:'虚构教师'}}:{payload,updatedAt:'r'+writes,ok:true}}));const device=await second.newPage();await device.goto('http://127.0.0.1:4178/cloud.html');await device.waitForFunction(()=>document.querySelector('#classTitle').textContent==='虚构达标测试班');await device.click('#databaseBtn');assert.equal(await device.evaluate(()=>{const d=classroomCloudBridge.getData();return CriterionAssessment.calculate(d,d.students[0],20,{complete:true}).bonus}),13.75);await second.close();
+ const downloadV2=page.waitForEvent('download');await page.click('[data-criterion-export]');await (await downloadV2).saveAs('tmp/criterion-v2/isolated.csv');assert.match(fs.readFileSync('tmp/criterion-v2/isolated.csv','utf8'),/3\/4人=3.75分/);
+ const printV2=page.waitForEvent('popup');await page.click('[data-criterion-print]');const pw=await printV2;await pw.waitForLoadState();assert.match(await pw.locator('body').innerText(),/3\/4人=3.75分/);await pw.pdf({path:'tmp/criterion-v2/isolated.pdf',format:'A3',landscape:true});await pw.close();
+ await page.setViewportSize({width:2400,height:1100});await openEntry();await page.screenshot({path:'docs/screenshots/criterion-v2.png',fullPage:false});
  assert.equal(errors.length,0,errors.join('\n'));console.log('PASS isolated browser settings/zero/foundation API snapshot/reload, raw data preservation, mobile scroll, screenshot');
  }finally{await browser.close();server.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

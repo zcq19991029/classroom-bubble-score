@@ -11,7 +11,7 @@ for(let i=0;i<50;i++)d.students.push({id:'synthetic-'+i});assert.deepEqual(calc(
 record(s,10);record(b,10);assert.equal(calc(s).regular,100);assert.equal(calc(b).regular,100);
 record(s,10,{status:'pending'});assert.equal(calc(s).learning,null);
 record(s,0);d.criterionAssessment.taskTarget=0;assert.equal(calc(s).learning,null);d.criterionAssessment.taskTarget=10;
-record(s,6,{bonus:200});assert.equal(calc(s).bonus,5);assert.equal(calc(s).learning,69);
+record(s,6,{bonus:200});assert.equal(calc(s).bonus,200);assert.equal(calc(s).learning,80);
 record(s,10,{bonus:5});assert.equal(calc(s).learning,80);
 record(s,0,{penalty:200});assert.equal(calc(s).learning,40);assert.equal(M.calculate(d,s,0,{complete:true}).regular,40);
 record(s,0);assert.equal(calc(s).needed,60);assert.equal(calc(s).exam,null);d.examScores[s.id]=0;assert.equal(calc(s).final,24);d.examScores[s.id]=100;assert.equal(calc(s).final,84);
@@ -26,4 +26,23 @@ const ctx={CriterionAssessment:M,data:{settings:{absenceDeduction:1,truantDeduct
 assert.equal(ctx.attendanceDeduction('迟到'),1);assert.equal(ctx.attendanceDeduction('旷课'),3);assert.equal(ctx.attendanceDeduction('请假'),0);assert.equal(ctx.attendanceDeduction('早退'),2);
 const historical={deduction:1};ctx.data.settings.absenceDeduction=8;assert.equal(ctx.attendanceDeduction('迟到',historical),1);assert.equal(ctx.attendanceDeduction('历史原因',{deduction:4}),4);assert.equal(ctx.attendanceDeduction('签到',{deduction:0}),0);
 assert.equal(ctx.attendanceDeduction('迟到'),8);assert.deepEqual(historical,{deduction:1});
+// V2: unbounded raw rewards on the same point scale, never rank-relative.
+record(s,80,{bonus:10});d.criterionAssessment.taskTarget=100;assert.equal(calc(s).regular,96);assert.equal(calc(s).needed,36);
+record(s,80,{bonus:20});assert.equal(calc(s).regular,100);record(s,80,{bonus:200});assert.equal(calc(s).regular,100);
+record(s,160,{bonus:40,penalty:10});d.criterionAssessment.taskTarget=200;assert.equal(calc(s).regular,98);
+record(s,-5);assert.equal(calc(s).learning,40);
+const q={students:[{id:'x',studentNo:'01',score:7},{id:'y',studentNo:'02',score:0}],logs:[{id:'old',studentId:'x',delta:7}],settings:{passScore:60},examScores:{},criterionAssessment:{mode:'projects',projects:[{id:'p',name:'项目',maximum:5,scores:{'id:x':4,'id:y':0}},{id:'p2',name:'补录',maximum:5,scores:{}}],students:{}}};
+const x=q.students[0],y=q.students[1],cq=()=>M.calculate(q,x,20,{complete:true});
+assert.equal(cq().target,5);assert.equal(cq().regular,92);assert.equal(cq().task.pending,1);assert.equal(M.calculate(q,y,20,{complete:true}).regular,60);assert.equal(cq().ready,false);
+let next=structuredClone(q.criterionAssessment);next.projects[1].scores['id:x']=4;M.commit(q,next,[{key:'id:x',category:'task',delta:4}],'项目补录','lesson-a');assert.equal(cq().target,10);assert.equal(cq().regular,92);assert.equal(q.students[0].score,11);
+M.commit(q,structuredClone(q.criterionAssessment),[{key:'id:x',category:'reward',delta:2}],'跨课奖励','lesson-b');assert.equal(cq().regular,100);assert.equal(cq().bonus,2);
+M.commit(q,structuredClone(q.criterionAssessment),[{key:'id:x',category:'reward',delta:-1}],'净奖励已含处罚','lesson-c');assert.equal(cq().regular,96);assert.equal(cq().penalty,0);
+M.travel(q);assert.equal(cq().regular,100);M.travel(q,true);assert.equal(cq().regular,96);
+assert.equal(q.logs.find(l=>l.id==='old').delta,7);assert.equal(cq().unclassified,1);
+for(const [p,n,expected] of [[4,5,4],[3,4,3.75],[5,5,5],[0,5,0]])assert.equal(M.dutyScore(p,n),expected);
+for(const [p,n] of [[6,5],[-1,5],[1,0],[1.5,4],[NaN,4]])assert.throws(()=>M.dutyScore(p,n));
+next=structuredClone(q.criterionAssessment);let effects=M.duty(next,'lesson-d|g1',['id:x','id:y'],3,4);M.commit(q,next,effects,'人数值日','lesson-d');let beforeDuty=q.students[0].score;assert.equal(q.criterionAssessment.duties['lesson-d|g1'].score,3.75);assert.equal(cq().bonus,4.75);
+M.travel(q);assert.equal(q.criterionAssessment.duties?.['lesson-d|g1'],undefined);assert.equal(q.students[0].score,beforeDuty-3.75);M.travel(q,true);assert.equal(q.students[0].score,beforeDuty);
+next=structuredClone(q.criterionAssessment);effects=M.duty(next,'lesson-d|g1',['id:x','id:y'],4,5);assert.equal(effects[0].delta,.25);M.commit(q,next,effects,'修改人数','lesson-d');assert.equal(q.criterionAssessment.duties['lesson-d|g1'].score,4);
+const restored=JSON.parse(JSON.stringify(q));assert.deepEqual(M.calculate(restored,restored.students[0],20,{complete:true}),cq());
 console.log('PASS criterion fixed denominator, independence, 100/92/84/60, pending vs zero, caps, exam rounding, serialization, immutable raw facts, both entry syntax');

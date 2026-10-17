@@ -6,6 +6,9 @@ const copy = value => JSON.parse(JSON.stringify(value));
 const initial = {version:2,activeClass:'测试班',classes:{'测试班':{className:'测试班',students:[{id:'s1',studentNo:'01',name:'测试学生',score:0}],logs:[],attendance:[],settings:{},updatedAt:1}}};
 function element(){const classes = new Set();return {value:'',style:{},textContent:'',className:'',disabled:false,classList:{add:v=>classes.add(v),remove:v=>classes.delete(v),toggle:()=>{},contains:v=>classes.has(v)},addEventListener(){},setAttribute(){}};}
 initial.classes['测试班'].criterionAssessment={taskTarget:10,students:{'id:s1':{earned:0,status:'graded',foundation:'makeup',bonus:0,penalty:0}}};
+initial.classes['测试班'].criterionAssessment.projects=[{id:'project-1',name:'虚构项目',maximum:5,scores:{'id:s1':4}}];
+initial.classes['测试班'].criterionAssessment.duties={'lesson|group-1':{participants:3,expected:4,score:3.75,studentKeys:['id:s1']}};
+initial.classes['测试班'].criterionHistory={undo:[{before:{},after:{},effects:[],label:'虚构'}],redo:[]};
 async function settle(){for(let i=0;i<35;i++)await Promise.resolve();}
 function boot(server, storage = new Map(), teacherId='teacher-a') {
   const elements=new Map(), timers=new Map(), events=new Map();let timerId=0;

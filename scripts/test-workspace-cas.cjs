@@ -30,6 +30,7 @@ async function main(){
   const saved = await call('PUT',{payload:casPayload, expectedUpdatedAt:first.body.updatedAt}); assert.equal(saved.status,200);
   assert.equal((await call('GET')).body.payload.classes['测试班'].students[0].score,2);
   const newSettings={taskTarget:10,students:{'id:s1':{earned:0,status:'graded',foundation:'makeup',bonus:0,penalty:0}}};
+  newSettings.projects=[{id:'p1',name:'虚构项目',maximum:5,scores:{'id:s1':4}}];newSettings.duties={'stable-lesson|group':{participants:3,expected:4,score:3.75,studentKeys:['id:s1']}};
   const criterionPayload=structuredClone(casPayload);criterionPayload.classes['测试班'].criterionAssessment=newSettings;
   assert.equal((await call('PUT',{payload:criterionPayload,expectedUpdatedAt:saved.body.updatedAt})).status,200);
   const restored=(await call('GET')).body.payload;assert.deepEqual(restored.classes['测试班'].criterionAssessment,newSettings);
