@@ -68,6 +68,9 @@
   header{height:66px;min-height:66px;box-sizing:border-box;overflow:hidden;padding-top:8px;padding-bottom:8px}.brand{height:42px;min-height:42px;align-items:center}.brand>div:last-child{min-width:0}.brand small{height:16px;min-height:16px;line-height:16px;overflow:hidden!important;text-overflow:ellipsis;white-space:nowrap}@media(max-width:980px){header{height:52px;min-height:52px;padding-top:5px;padding-bottom:5px}.brand{height:38px;min-height:38px}}@media(max-width:720px){.brand small{display:none!important}}
 
 #databaseModal .panel{width:min(2400px,96vw);max-width:none}#page-assessment select{max-width:230px}#page-assessment [data-entry-panel] input{max-width:180px} @media(max-width:760px){#databaseModal .panel{width:100vw}}
+
+/* Per-student motivational targets stay in the first horizontal viewport. */
+#databaseModal .panel{width:min(1880px,100%)}#databaseModal .assessment-table{table-layout:auto}#databaseModal .assessment-table th:first-child{min-width:108px}#databaseModal .assessment-table .goal-column{min-width:150px;background:#fff2f4;white-space:normal;text-align:center}#databaseModal .assessment-table .goal-column small{display:block;color:#857786;font-size:11px;font-weight:400}.goal-value{font-size:23px;color:#d92734;font-weight:900}.goal-examples{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.goal-examples span{padding:8px 12px;background:white;border-radius:10px}.assessment-goals>b{font-size:16px}.assessment-settings label[hidden]{display:none}
 </style>
 </head>
 <body>

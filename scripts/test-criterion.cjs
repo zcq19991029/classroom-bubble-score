@@ -45,4 +45,12 @@ next=structuredClone(q.criterionAssessment);let effects=M.duty(next,'lesson-d|g1
 M.travel(q);assert.equal(q.criterionAssessment.duties?.['lesson-d|g1'],undefined);assert.equal(q.students[0].score,beforeDuty-3.75);M.travel(q,true);assert.equal(q.students[0].score,beforeDuty);
 next=structuredClone(q.criterionAssessment);effects=M.duty(next,'lesson-d|g1',['id:x','id:y'],4,5);assert.equal(effects[0].delta,.25);M.commit(q,next,effects,'修改人数','lesson-d');assert.equal(q.criterionAssessment.duties['lesson-d|g1'].score,4);
 const restored=JSON.parse(JSON.stringify(q));assert.deepEqual(M.calculate(restored,restored.students[0],20,{complete:true}),cq());
+// Default named projects accumulate across lessons; blank and explicit zero differ.
+assert.equal(M.mode({}),'projects');assert.equal(M.mode({taskTarget:100}),'manual');
+const auto={settings:{passScore:60},students:[x,y],logs:[],criterionAssessment:{projects:[{id:'a',name:'第一课实训',lessonId:'lesson-1',scores:{'id:x':4,'id:y':0}},{id:'b',name:'第二课实训',lessonId:'lesson-2',scores:{'id:x':4}},{name:' ',maximum:999,scores:{'id:x':999}}]}};
+const ca=st=>M.calculate(auto,st,20,{complete:true});assert.equal(ca(x).target,10);assert.equal(ca(x).regular,92);assert.equal(ca(x).needed,38.7);assert.equal(ca(y).target,5);assert.equal(ca(y).regular,60);assert.equal(ca(y).task.pending,1);assert.equal(ca(y).ready,false);
+const beta=ca(y);auto.logs.push({studentId:'x',delta:1,assessmentCategory:'reward'});assert.equal(ca(x).regular,96);assert.equal(ca(x).needed,36);assert.deepEqual(ca(y),beta);
+for(const [earned,regular,needed] of [[3,84,44],[4,92,38.7],[5,100,33.4]]){auto.logs=[];auto.criterionAssessment.projects=[{name:'项目',scores:{'id:x':earned}}];assert.equal(ca(x).regular,regular);assert.equal(ca(x).needed,needed)}
+for(const [maximum,earned,increase] of [[100,80,.4],[200,160,.2]]){auto.logs=[];auto.criterionAssessment.projects=[{name:'累计',maximum,scores:{'id:x':earned}}];const old=ca(x).regular;auto.logs=[{studentId:'x',delta:1,assessmentCategory:'reward'}];assert.equal(M.round(ca(x).regular-old),increase)}
+auto.criterionAssessment.projects=[{name:'空白',scores:{}}];assert.equal(ca(x).regular,null);assert.equal(ca(x).needed,null);
 console.log('PASS criterion fixed denominator, independence, 100/92/84/60, pending vs zero, caps, exam rounding, serialization, immutable raw facts, both entry syntax');

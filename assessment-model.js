@@ -5,11 +5,13 @@
   const round=n=>Math.round((n+Number.EPSILON)*10)/10;
   const numeric=v=>v!==''&&v!==null&&v!==undefined&&Number.isFinite(Number(v));
   const key=s=>s.id?'id:'+s.id:'no:'+s.studentNo;
+  // Preserve an explicitly configured legacy fixed benchmark without writing a migration.
+  const mode=cfg=>cfg.mode==='manual'||(!cfg.mode&&numeric(cfg.taskTarget)&&Number(cfg.taskTarget)>0)?'manual':'projects';
   function evidence(cfg,s){
     const r=(cfg.students||{})[key(s)]||{},projects=Array.isArray(cfg.projects)?cfg.projects:[];
-    if(cfg.mode==='projects'||(!cfg.mode&&projects.length)){
+    if(mode(cfg)==='projects'){
       let earned=0,target=0,pending=0;
-      for(const p of projects){const max=numeric(p.maximum)&&Number(p.maximum)>0?Number(p.maximum):5,v=p.scores?.[key(s)];if(!numeric(v)){pending++;continue}earned+=Number(v);target+=max;}
+      for(const p of projects){if(!String(p.name||'').trim())continue;const max=numeric(p.maximum)&&Number(p.maximum)>0?Number(p.maximum):5,v=p.scores?.[key(s)];if(!numeric(v)){pending++;continue}earned+=Number(v);target+=max;}
       return {earned:target?earned:null,target:target||null,pending,graded:target>0,source:'已评分项目满分自动累计'};
     }
     const target=numeric(cfg.taskTarget)&&Number(cfg.taskTarget)>0?Number(cfg.taskTarget):null,graded=r.status==='graded'&&numeric(r.earned);
@@ -35,14 +37,14 @@
     const e=data.examScores?.[s.id],exam=numeric(e)&&Number(e)>=0&&Number(e)<=100?Number(e):null;
     const foundation=['met','makeup'].includes(r.foundation)?r.foundation:'pending';
     const reasons=[];
-    if(!target)reasons.push('任务满分待设置');
+    if(!target)reasons.push(mode(cfg)==='projects'?'项目待录入/无已评分项目':'任务满分待设置');
     if(!graded||task.pending)reasons.push('待批改');
     if(c.unclassified&&!r.legacyReviewed)reasons.push('旧积分未分类，待教师确认');
     if(foundation!=='met')reasons.push(foundation==='makeup'?'待补做':'基础待确认');
     if(!coverage?.complete)reasons.push('考勤未齐/待核对');
     return {key:key(s),task,performanceRate,unclassified:c.unclassified,draftEarned:numeric(r.earned)?Number(r.earned):null,target,earned,rate,bonus,penalty,learning,attendance,regular,contribution,needed,exam,final:exam===null||contribution===null?null:round(contribution+exam*.6),foundation,ready:!reasons.length,reasons,status:graded?'graded':'pending'};
   }
-  const api={calculate,key,round,numeric,evidence,classified,commit,travel,duty,dutyScore};
+  const api={calculate,key,round,numeric,evidence,classified,commit,travel,duty,dutyScore,mode};
   if(typeof module!=='undefined')module.exports=api;
   root.CriterionAssessment=api;
 })(typeof window==='undefined'?globalThis:window);

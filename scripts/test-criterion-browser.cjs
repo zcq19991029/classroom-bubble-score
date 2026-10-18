@@ -14,7 +14,9 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'C:/Users/25466/.cache/c
  await context.route('**/api/**',route=>{const p=new URL(route.request().url()).pathname;if(p==='/api/auth/session')return route.fulfill({json:{teacher:{id:'isolated',displayName:'虚构教师'}}});if(p==='/api/workspace'){if(route.request().method()==='PUT'){payload=route.request().postDataJSON().payload;writes++;}return route.fulfill({json:{payload,updatedAt:'r'+writes,ok:true}})}return route.fulfill({json:{ok:true}})});
  const page=await context.newPage();let errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:4178/cloud.html');await page.waitForFunction(()=>document.querySelector('#classTitle').textContent==='虚构达标测试班');
- await page.click('#databaseBtn');assert.match(await page.locator('#page-assessment').innerText(),/任务满分待设置/);
+ await page.click('#databaseBtn');assert.match(await page.locator('#page-assessment').innerText(),/项目待录入/);
+ await page.locator('[data-entry-panel] summary').first().click();assert.equal(await page.locator('[data-entry-mode]').inputValue(),'projects');assert.equal(await page.locator('[data-criterion-target]').isVisible(),false);
+ await page.locator('[data-entry-mode]').selectOption('manual');
  await page.locator('[data-criterion-target]').fill('10');await page.locator('[data-criterion-target]').press('Tab');
  await page.locator('[data-criterion-field="earned"]').first().fill('0');await page.locator('[data-criterion-field="earned"]').first().press('Tab');
  await page.locator('[data-criterion-field="status"]').first().selectOption('graded');
@@ -43,7 +45,11 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'C:/Users/25466/.cache/c
  await openEntry();await page.locator('[data-project-name]').fill('接线实训');await page.locator('[data-project-max]').fill('5');await page.click('[data-project-add]');
  await openEntry();await page.getByText('接线实训 · 满分5',{exact:false}).click();await page.locator('[data-project-student="id:a"]').fill('4');await page.locator('[data-project-student="id:a"]').press('Tab');
  let read=()=>page.evaluate(()=>{const d=classroomCloudBridge.getData();return CriterionAssessment.calculate(d,d.students.find(s=>s.id==='a'),20,{complete:true})});
- assert.equal((await read()).regular,92);assert.equal((await read()).target,5);
+ assert.equal((await read()).regular,92);assert.equal((await read()).target,5);assert.equal((await read()).needed,38.7);
+ assert.match(await page.locator('[data-goal-student="id:a"] .goal-column').nth(2).innerText(),/38.7 分/);
+ await openEntry();await page.locator('[data-reward-value]').fill('0.5');await page.click('[data-reward-add]');assert.equal((await read()).regular,96);assert.equal((await read()).needed,36);
+ assert.match(await page.locator('[data-goal-student="id:a"] .goal-column').nth(2).innerText(),/36 分/);
+ await openEntry();await page.click('[data-entry-undo]');assert.equal((await read()).regular,92);
  await openEntry();await page.locator('[data-reward-student]').selectOption('id:a');await page.locator('[data-reward-value]').fill('10');await page.click('[data-reward-add]');assert.equal((await read()).bonus,10);assert.equal((await read()).regular,100);
  await openEntry();await page.click('[data-entry-undo]');assert.equal((await read()).bonus,0);assert.equal((await read()).regular,92);
  await openEntry();await page.click('[data-entry-redo]');assert.equal((await read()).bonus,10);
@@ -54,7 +60,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'C:/Users/25466/.cache/c
  const second=await browser.newContext();await second.route('**/api/**',r=>r.fulfill({json:r.request().url().includes('/api/auth/session')?{teacher:{id:'isolated',displayName:'虚构教师'}}:{payload,updatedAt:'r'+writes,ok:true}}));const device=await second.newPage();await device.goto('http://127.0.0.1:4178/cloud.html');await device.waitForFunction(()=>document.querySelector('#classTitle').textContent==='虚构达标测试班');await device.click('#databaseBtn');assert.equal(await device.evaluate(()=>{const d=classroomCloudBridge.getData();return CriterionAssessment.calculate(d,d.students[0],20,{complete:true}).bonus}),13.75);await second.close();
  const downloadV2=page.waitForEvent('download');await page.click('[data-criterion-export]');await (await downloadV2).saveAs('tmp/criterion-v2/isolated.csv');assert.match(fs.readFileSync('tmp/criterion-v2/isolated.csv','utf8'),/3\/4人=3.75分/);
  const printV2=page.waitForEvent('popup');await page.click('[data-criterion-print]');const pw=await printV2;await pw.waitForLoadState();assert.match(await pw.locator('body').innerText(),/3\/4人=3.75分/);await pw.pdf({path:'tmp/criterion-v2/isolated.pdf',format:'A3',landscape:true});await pw.close();
- await page.setViewportSize({width:2400,height:1100});await openEntry();await page.screenshot({path:'docs/screenshots/criterion-v2.png',fullPage:false});
+ await page.setViewportSize({width:1800,height:1100});await page.screenshot({path:'docs/screenshots/criterion-auto.png',fullPage:false});
  assert.equal(errors.length,0,errors.join('\n'));console.log('PASS isolated browser settings/zero/foundation API snapshot/reload, raw data preservation, mobile scroll, screenshot');
  }finally{await browser.close();server.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

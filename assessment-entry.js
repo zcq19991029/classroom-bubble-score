@@ -1,24 +1,37 @@
 /* Raw assessment entry shares the class workspace and immutable classified logs. */
 (function(){
  'use strict';const M=CriterionAssessment,U=CriterionAssessmentUI,base={...U},copy=x=>JSON.parse(JSON.stringify(x)),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const config=ctx=>ctx.data.criterionAssessment||{},isProjects=c=>c.mode==='projects'||(!c.mode&&c.projects?.length>0);
+ const config=ctx=>ctx.data.criterionAssessment||{},isProjects=c=>M.mode(c)==='projects';
  function write(ctx,c,effects,label){M.commit(ctx.data,c,effects,label,ctx.lesson?.());ctx.save();ctx.render();}
  function options(ctx){return ctx.data.students.map(s=>`<option value="${esc(M.key(s))}">${esc(s.name)} ${esc(s.studentNo)}</option>`).join('');}
  function groups(ctx){return [...(ctx.dutyIds?.().length?[{id:'rotation',name:'本课轮值名单',studentIds:ctx.dutyIds()}]:[]),...(ctx.groups?.()||[])];}
  U.render=ctx=>{const c=config(ctx),gs=groups(ctx);let html=base.render(ctx);
- const entry=`<details class="assessment-note" data-entry-panel><summary>录入项目原始分、课堂奖惩、值日人数 · 撤销/重做</summary><div class="assessment-settings"><button class="btn" data-entry-undo ${!ctx.data.criterionHistory?.undo?.length?'disabled':''}>撤销新评分</button><button class="btn" data-entry-redo ${!ctx.data.criterionHistory?.redo?.length?'disabled':''}>重做新评分</button><label>任务来源 <select data-entry-mode><option value="manual" ${!isProjects(c)?'selected':''}>教师固定累计基准</option><option value="projects" ${isProjects(c)?'selected':''}>项目明细自动累计</option></select></label></div>
+ const entry=`<details class="assessment-note" data-entry-panel><summary>录入项目原始分、课堂奖惩、值日人数 · 撤销/重做</summary><div class="assessment-settings"><button class="btn" data-entry-undo ${!ctx.data.criterionHistory?.undo?.length?'disabled':''}>撤销新评分</button><button class="btn" data-entry-redo ${!ctx.data.criterionHistory?.redo?.length?'disabled':''}>重做新评分</button><label>任务来源 <select data-entry-mode><option value="manual" ${!isProjects(c)?'selected':''}>高级兼容：固定累计基准</option><option value="projects" ${isProjects(c)?'selected':''}>默认：命名项目自动累计</option></select></label></div>
  <div class="assessment-settings"><input data-project-name aria-label="项目名称" placeholder="本课项目名称"><label>满分<input data-project-max aria-label="新项目满分" type="number" min="0.01" step="0.01" value="5"></label><button class="btn" data-project-add>新增项目</button></div>
  ${(c.projects||[]).map(p=>`<details class="assessment-note"><summary>${esc(p.name)} · 满分${p.maximum} · ${esc(p.lesson)}</summary><label>名称 <input data-project-id="${p.id}" data-project-field="name" value="${esc(p.name)}"></label><label>满分 <input data-project-id="${p.id}" data-project-field="maximum" type="number" min="0.01" step="0.01" value="${p.maximum}"></label><div class="assessment-settings">${ctx.data.students.map(s=>`<label>${esc(s.name)}<input aria-label="${esc(p.name)} ${esc(s.name)} 原始分" data-project-id="${p.id}" data-project-student="${esc(M.key(s))}" type="number" step="0.01" max="${p.maximum}" value="${p.scores?.[M.key(s)]??''}" placeholder="待批改"></label>`).join('')}</div></details>`).join('')}
  <div class="assessment-settings"><select aria-label="奖惩学生" data-reward-student>${options(ctx)}</select><select aria-label="奖惩来源" data-reward-kind><option value="reward">课堂净奖励（含已净扣处罚）</option><option value="discipline">个人纪律扣分</option></select><input data-reward-value aria-label="本次原始奖惩分" type="number" step="0.01" placeholder="本次原始分"><button class="btn" data-reward-add>记入本课</button></div><p>奖励可正可负，纪律填非负扣分；同一处罚不能同时记入净奖励和纪律。新气泡/按组加分明确记奖励，负分明确记纪律；旧未分类日志不自动纳入。</p>
  <div class="assessment-settings"><label>值日对象<select data-duty-group aria-label="值日对象">${gs.map(g=>`<option value="${esc(g.id)}">${esc(g.name)}（${g.studentIds.length}人）</option>`).join('')}</select></label><label>参与<input data-duty-participants aria-label="值日参与人数" type="number" min="0" step="1"></label><label>应到<input data-duty-expected aria-label="值日应到人数" type="number" min="1" step="1" value="${gs[0]?.studentIds.length||''}"></label><button class="btn" data-duty-save>计算并记录值日</button></div><p>值日＝5×参与/应到，保留两位；应到默认对象实际人数，可修正。人数/成员快照/分数按本课保存；修改只记差额，撤销/重做一起恢复。旧手填分保留，不倒推人数。</p>${Object.entries(c.duties||{}).map(([k,d])=>`<p>${esc(k)}：${d.participants}/${d.expected}人＝${d.score}分</p>`).join('')}</details>`;
  html=html.replace('<div class="assessment-settings">',entry+'<div class="assessment-settings">');
  const t=document.createElement('template');t.innerHTML=html;
- const target=t.content.querySelector('[data-criterion-target]');if(target)target.disabled=!!isProjects(c);
+ const target=t.content.querySelector('[data-criterion-target]');if(target){target.disabled=!!isProjects(c);target.parentElement.hidden=!!isProjects(c);target.setAttribute('aria-label','高级兼容任务固定满分');if(!isProjects(c))target.parentElement.childNodes[0].textContent='高级兼容：固定累计满分 ';}
  const note=t.content.querySelector('.assessment-settings + .note');if(note&&isProjects(c))note.textContent='任务分母：每位学生已评分项目的满分自动累计；空白项目待批改，不当0，全部资料齐全前保持预估。';
  for(const input of t.content.querySelectorAll('[data-criterion-field="bonus"],[data-criterion-field="penalty"]')){const x=U.items(ctx).find(x=>x.key===input.dataset.criterionKey);input.replaceWith(document.createTextNode(x?.[input.dataset.criterionField]??0));}
  for(const input of t.content.querySelectorAll('[data-criterion-field="earned"]'))if(isProjects(c)){const x=U.items(ctx).find(x=>x.key===input.dataset.criterionKey);input.replaceWith(document.createTextNode(x?.earned??'—'));}
  for(const input of t.content.querySelectorAll('[data-criterion-field="status"]'))if(isProjects(c))input.remove();
  for(const cell of t.content.querySelectorAll('tbody tr td:last-child')){const k=cell.querySelector('[data-criterion-key]')?.dataset.criterionKey;if(!k)continue;const label=document.createElement('label');label.style.display='block';const input=document.createElement('input');input.type='checkbox';input.dataset.legacyReviewed=k;input.checked=!!c.students?.[k]?.legacyReviewed;label.append(input,document.createTextNode('旧未分类积分已核对（不自动计入）'));cell.append(label);}
+ // Put each student's motivational targets in the first viewport, ahead of raw diagnostics.
+ const rows=U.items(ctx),order=[1,10,11,12,0,2,3,4,5,6,7,8,9,13,14,15];
+ for(const tr of t.content.querySelectorAll('.assessment-table tr')){const cells=[...tr.children];if(cells.length!==16)continue;
+   if(tr.parentElement.tagName==='THEAD'){cells[10].textContent='平时百分制 /100';cells[11].textContent='平时折合 /40';cells[12].textContent='期末至少考多少分 /100';}
+   else{const k=tr.querySelector('[data-criterion-key]')?.dataset.criterionKey,x=rows.find(x=>x.key===k);if(x){tr.dataset.goalStudent=x.key;
+     cells[10].innerHTML=`<strong class="goal-value">${x.regular??'—'}</strong><small>${x.ready?'资料已齐':'预估/待复核'}</small>`;
+     cells[11].innerHTML=`<strong class="goal-value">${x.contribution??'—'}</strong><small>计入综合成绩</small>`;
+     cells[12].innerHTML=`<strong class="goal-value">${x.needed===null?'待评分':x.needed>100?'无法达到':x.needed+' 分'}</strong><small>${x.needed>100?'需'+x.needed+'，超过100':x.needed===null?'录入项目后自动计算':x.ready?'按当前记录测算':'预估 · 不保证及格'}</small>`;
+   }}
+   for(const i of order){cells[i].classList.toggle('goal-column',[10,11,12].includes(i));tr.append(cells[i]);}
+ }
+ const motivation=document.createElement('section');motivation.className='assessment-note assessment-goals';motivation.setAttribute('aria-label','平时分与期末目标说明');motivation.innerHTML='<b>课堂参与 → 平时百分制 → 期末目标</b><p>每个人的目标随项目、奖励、扣分和考勤实时更新。资料未齐只作预估，不保证及格。</p><div class="goal-examples"><span>平时84 → 折合33.6 → 期末至少44</span><span>平时92 → 折合36.8 → 期末至少38.7</span><span>平时96 → 折合38.4 → 期末至少36</span><span>平时100 → 折合40 → 期末至少33.4</span></div><small>以上按及格60、平时40%＋期末60%测算。项目越多，单次积分影响越小，但成绩不是固定不变；新增低分项目、补录或考勤异常都会重算。未触及上下限、舍入前，满分100时每奖励1分影响0.4平时分，满分200时影响0.2。平时达到100后，奖励仍累计，期末目标不再下降。</small>';
+ t.content.prepend(motivation);
  return t.innerHTML;
  };
  U.change=(ctx,e)=>{const el=e.target,c=copy(config(ctx));
