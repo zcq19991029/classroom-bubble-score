@@ -127,6 +127,7 @@
   };
   const normalizePayload = value => {
     const next = { version: 2, activeClass: '', classes: {} };
+    if (Array.isArray(value?.archivedClasses)) next.archivedClasses = clone(value.archivedClasses);
     const classes = value && value.classes && typeof value.classes === 'object' ? value.classes : {};
     Object.entries(classes).forEach(([key, value]) => { const item = normalizeClass(value); if (item) next.classes[item.className || key] = item; });
     next.activeClass = value && next.classes[value.activeClass] ? value.activeClass : Object.keys(next.classes)[0] || '';
@@ -139,6 +140,25 @@
     classSwitcher.value = names.includes(cloudPayload.activeClass) ? cloudPayload.activeClass : names[0] || '';
     classSwitcher.disabled = !teacher || names.length < 2;
     classSwitcher.title = names.length > 1 ? '点击切换班级' : `当前班级：${classSwitcher.value || '未加载'}`;
+  };
+  window.classroomClassManager = {
+    snapshot(){if(!teacher||loading)throw Error('请等待登录和同步完成');return clone(cloudPayload)},
+    backupAll(){
+      const payload=this.snapshot(),url=URL.createObjectURL(new Blob([JSON.stringify(payload)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='课堂全部班级含归档-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    },
+    async change(options){
+      if(!teacher||loading||syncConflict)throw Error('请先登录并解决同步冲突');
+      if(scheduleSaving||syncInFlight)throw Error('正在同步，请稍后重试');
+      if(syncPending){await flush();if(syncPending)throw Error('现有修改尚未保存');}
+      const generation=editGeneration,latest=await api('/api/workspace');
+      if(generation!==editGeneration||JSON.stringify(normalizePayload(latest.payload))!==JSON.stringify(cloudPayload))throw Error('云端或本机已变化，请刷新后重试');
+      const next=options.restoreId?ClassArchive.restore(latest.payload,options.restoreId):ClassArchive.plan(latest.payload,options.names,new Date().toISOString());
+      // A normal UI download preserves the full workspace before changing its class list.
+      const url=URL.createObjectURL(new Blob([JSON.stringify(latest.payload)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='班级移出前完整备份-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      scheduleSaving=true;clearTimeout(syncTimer);
+      try{const saved=await api('/api/workspace',{method:'PUT',body:JSON.stringify({payload:next,expectedUpdatedAt:latest.updatedAt})});cloudRevision=saved.updatedAt;cloudPayload=normalizePayload(next);syncPending=false;forgetPending();renderClasses();loading=true;try{window.classroomCloudBridge.setData(clone(cloudPayload.classes[cloudPayload.activeClass]))}finally{loading=false}setState('云端已同步');}
+      catch(e){setState('班级列表保存失败','error',e.message);throw e}finally{scheduleSaving=false}
+    }
   };
   const keepCurrent = current => {
     const item = normalizeClass(current);

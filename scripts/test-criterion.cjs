@@ -1,56 +1,29 @@
-const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const M=require('../assessment-model.js');
-const s={id:'stable-a',studentNo:'01',score:17},b={id:'stable-b',studentNo:'02',score:8};
-const d={students:[s,b],settings:{passScore:60},logs:[{delta:17}],attendance:[],homework:[],examScores:{},lessonSchedule:[],courseProgress:{},criterionAssessment:{taskTarget:10,students:{}}};
-const record=(st,earned,extra={})=>d.criterionAssessment.students[M.key(st)]={earned,status:'graded',foundation:'met',...extra};
-const calc=st=>M.calculate(d,st,20,{complete:true});
-for(const [n,v] of [[10,100],[8,92],[6,84],[0,60]]){record(s,n);assert.equal(calc(s).regular,v)}
-record(s,0,{foundation:'pending'});assert.equal(calc(s).ready,false);
-record(s,6);record(b,6);let before=calc(b);record(s,10);assert.deepEqual(calc(b),before);
-for(let i=0;i<50;i++)d.students.push({id:'synthetic-'+i});assert.deepEqual(calc(b),before);
-record(s,10);record(b,10);assert.equal(calc(s).regular,100);assert.equal(calc(b).regular,100);
-record(s,10,{status:'pending'});assert.equal(calc(s).learning,null);
-record(s,0);d.criterionAssessment.taskTarget=0;assert.equal(calc(s).learning,null);d.criterionAssessment.taskTarget=10;
-record(s,6,{bonus:200});assert.equal(calc(s).bonus,200);assert.equal(calc(s).learning,80);
-record(s,10,{bonus:5});assert.equal(calc(s).learning,80);
-record(s,0,{penalty:200});assert.equal(calc(s).learning,40);assert.equal(M.calculate(d,s,0,{complete:true}).regular,40);
-record(s,0);assert.equal(calc(s).needed,60);assert.equal(calc(s).exam,null);d.examScores[s.id]=0;assert.equal(calc(s).final,24);d.examScores[s.id]=100;assert.equal(calc(s).final,84);
-d.settings.passScore=100;assert.equal(calc(s).needed,126.7);d.settings.passScore=60;
-assert.equal(M.calculate(d,s,20,{complete:false}).ready,false);
-const snapshot=JSON.stringify(d);calc(s);assert.equal(JSON.stringify(d),snapshot);assert.deepEqual(calc(s),M.calculate(JSON.parse(snapshot),s,20,{complete:true}));
-for(const file of ['cloud.html','index.html']){const html=fs.readFileSync(file,'utf8');assert(!html.includes('function classroomAssignments'));assert(html.includes('assessment-model.js'));for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);}
-new vm.Script(fs.readFileSync('assessment-ui.js','utf8'));
-const html=fs.readFileSync('cloud.html','utf8');
-const deductionCode=html.match(/function attendanceDeduction\(status,record\)\{[^\n]+/)[0];
-const ctx={CriterionAssessment:M,data:{settings:{absenceDeduction:1,truantDeduction:3}},customAttendanceRules:()=>[{name:'早退',deduction:2}]};vm.createContext(ctx);vm.runInContext(deductionCode,ctx);
-assert.equal(ctx.attendanceDeduction('迟到'),1);assert.equal(ctx.attendanceDeduction('旷课'),3);assert.equal(ctx.attendanceDeduction('请假'),0);assert.equal(ctx.attendanceDeduction('早退'),2);
-const historical={deduction:1};ctx.data.settings.absenceDeduction=8;assert.equal(ctx.attendanceDeduction('迟到',historical),1);assert.equal(ctx.attendanceDeduction('历史原因',{deduction:4}),4);assert.equal(ctx.attendanceDeduction('签到',{deduction:0}),0);
-assert.equal(ctx.attendanceDeduction('迟到'),8);assert.deepEqual(historical,{deduction:1});
-// V2: unbounded raw rewards on the same point scale, never rank-relative.
-record(s,80,{bonus:10});d.criterionAssessment.taskTarget=100;assert.equal(calc(s).regular,96);assert.equal(calc(s).needed,36);
-record(s,80,{bonus:20});assert.equal(calc(s).regular,100);record(s,80,{bonus:200});assert.equal(calc(s).regular,100);
-record(s,160,{bonus:40,penalty:10});d.criterionAssessment.taskTarget=200;assert.equal(calc(s).regular,98);
-record(s,-5);assert.equal(calc(s).learning,40);
-const q={students:[{id:'x',studentNo:'01',score:7},{id:'y',studentNo:'02',score:0}],logs:[{id:'old',studentId:'x',delta:7}],settings:{passScore:60},examScores:{},criterionAssessment:{mode:'projects',projects:[{id:'p',name:'项目',maximum:5,scores:{'id:x':4,'id:y':0}},{id:'p2',name:'补录',maximum:5,scores:{}}],students:{}}};
-const x=q.students[0],y=q.students[1],cq=()=>M.calculate(q,x,20,{complete:true});
-assert.equal(cq().target,5);assert.equal(cq().regular,92);assert.equal(cq().task.pending,1);assert.equal(M.calculate(q,y,20,{complete:true}).regular,60);assert.equal(cq().ready,false);
-let next=structuredClone(q.criterionAssessment);next.projects[1].scores['id:x']=4;M.commit(q,next,[{key:'id:x',category:'task',delta:4}],'项目补录','lesson-a');assert.equal(cq().target,10);assert.equal(cq().regular,92);assert.equal(q.students[0].score,11);
-M.commit(q,structuredClone(q.criterionAssessment),[{key:'id:x',category:'reward',delta:2}],'跨课奖励','lesson-b');assert.equal(cq().regular,100);assert.equal(cq().bonus,2);
-M.commit(q,structuredClone(q.criterionAssessment),[{key:'id:x',category:'reward',delta:-1}],'净奖励已含处罚','lesson-c');assert.equal(cq().regular,96);assert.equal(cq().penalty,0);
-M.travel(q);assert.equal(cq().regular,100);M.travel(q,true);assert.equal(cq().regular,96);
-assert.equal(q.logs.find(l=>l.id==='old').delta,7);assert.equal(cq().unclassified,1);
-for(const [p,n,expected] of [[4,5,4],[3,4,3.75],[5,5,5],[0,5,0]])assert.equal(M.dutyScore(p,n),expected);
-for(const [p,n] of [[6,5],[-1,5],[1,0],[1.5,4],[NaN,4]])assert.throws(()=>M.dutyScore(p,n));
-next=structuredClone(q.criterionAssessment);let effects=M.duty(next,'lesson-d|g1',['id:x','id:y'],3,4);M.commit(q,next,effects,'人数值日','lesson-d');let beforeDuty=q.students[0].score;assert.equal(q.criterionAssessment.duties['lesson-d|g1'].score,3.75);assert.equal(cq().bonus,4.75);
-M.travel(q);assert.equal(q.criterionAssessment.duties?.['lesson-d|g1'],undefined);assert.equal(q.students[0].score,beforeDuty-3.75);M.travel(q,true);assert.equal(q.students[0].score,beforeDuty);
-next=structuredClone(q.criterionAssessment);effects=M.duty(next,'lesson-d|g1',['id:x','id:y'],4,5);assert.equal(effects[0].delta,.25);M.commit(q,next,effects,'修改人数','lesson-d');assert.equal(q.criterionAssessment.duties['lesson-d|g1'].score,4);
-const restored=JSON.parse(JSON.stringify(q));assert.deepEqual(M.calculate(restored,restored.students[0],20,{complete:true}),cq());
-// Default named projects accumulate across lessons; blank and explicit zero differ.
-assert.equal(M.mode({}),'projects');assert.equal(M.mode({taskTarget:100}),'manual');
-const auto={settings:{passScore:60},students:[x,y],logs:[],criterionAssessment:{projects:[{id:'a',name:'第一课实训',lessonId:'lesson-1',scores:{'id:x':4,'id:y':0}},{id:'b',name:'第二课实训',lessonId:'lesson-2',scores:{'id:x':4}},{name:' ',maximum:999,scores:{'id:x':999}}]}};
-const ca=st=>M.calculate(auto,st,20,{complete:true});assert.equal(ca(x).target,10);assert.equal(ca(x).regular,92);assert.equal(ca(x).needed,38.7);assert.equal(ca(y).target,5);assert.equal(ca(y).regular,60);assert.equal(ca(y).task.pending,1);assert.equal(ca(y).ready,false);
-const beta=ca(y);auto.logs.push({studentId:'x',delta:1,assessmentCategory:'reward'});assert.equal(ca(x).regular,96);assert.equal(ca(x).needed,36);assert.deepEqual(ca(y),beta);
-for(const [earned,regular,needed] of [[3,84,44],[4,92,38.7],[5,100,33.4]]){auto.logs=[];auto.criterionAssessment.projects=[{name:'项目',scores:{'id:x':earned}}];assert.equal(ca(x).regular,regular);assert.equal(ca(x).needed,needed)}
-for(const [maximum,earned,increase] of [[100,80,.4],[200,160,.2]]){auto.logs=[];auto.criterionAssessment.projects=[{name:'累计',maximum,scores:{'id:x':earned}}];const old=ca(x).regular;auto.logs=[{studentId:'x',delta:1,assessmentCategory:'reward'}];assert.equal(M.round(ca(x).regular-old),increase)}
-auto.criterionAssessment.projects=[{name:'空白',scores:{}}];assert.equal(ca(x).regular,null);assert.equal(ca(x).needed,null);
-console.log('PASS criterion fixed denominator, independence, 100/92/84/60, pending vs zero, caps, exam rounding, serialization, immutable raw facts, both entry syntax');
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),M=require('../assessment-model.js');
+const a={id:'a',studentNo:'01',score:10},b={id:'b',studentNo:'02',score:20};
+const d={students:[a,b],logs:[{studentId:'a',delta:10}],attendance:[],settings:{passScore:60,absenceDeduction:1,truantDeduction:3,customAttendanceRules:[{name:'早退',deduction:1},{name:'工具未还',deduction:2}]},examScores:{},criterionAssessment:{taskTarget:999,projects:[{name:'不参与',scores:{'id:a':999}}],students:{'id:a':{earned:999,bonus:999,penalty:999,status:'pending',foundation:'met'}}}};
+const calc=s=>M.calculate(d,s,undefined,{complete:true});
+assert.equal(calc(a).learning,26);assert.equal(calc(a).regular,74);assert.equal(calc(a).contribution,29.6);assert.equal(calc(a).needed,50.7);assert.equal(calc(b).regular,100);assert.equal(calc(b).needed,33.4);
+for(const [score,regular] of [[0,48],[16,89.6],[18,94.8],[-1,48]]){a.score=score;assert.equal(calc(a).regular,regular)}
+a.score=10;b.score=25;assert.equal(calc(a).regular,68.8);b.score=20;
+d.logs.push({studentId:'a',delta:100,assessmentCategory:'reward'});assert.equal(calc(a).regular,74,'classified logs not double counted');
+a.score=0;b.score=0;assert.equal(calc(a).learning,0);assert.equal(calc(a).ready,false);assert.equal(calc(a).regular,48);a.score=10;b.score=20;
+const rec=(id,status='旷课',extra={})=>({id,studentId:'a',lessonId:id,lesson:id,status,time:'2026-10-01',...extra});
+d.attendance=[rec('l1')];assert.equal(calc(a).attendance,45);assert.equal(calc(a).attendanceFailed,false);
+d.attendance.push(rec('l2'),rec('l3'));assert.equal(calc(a).attendance,39);assert.equal(calc(a).attendanceFacts.actualTruant,3);assert.equal(calc(a).attendanceFailed,true);assert.equal(calc(a).needed,null);
+d.examScores.a=100;assert(calc(a).final>60);assert.match(calc(a).result,/考勤挂科/);
+d.attendance[2].status='签到';assert.equal(calc(a).attendanceFailed,false);assert.notEqual(calc(a).needed,null);
+d.attendance=Array.from({length:9},(_,i)=>rec('t'+i,i%2?'迟到':'早退'));assert.equal(calc(a).attendance,39);assert.equal(calc(a).attendanceFailed,false);assert.equal(calc(a).attendanceFacts.actualTruant,0);
+d.attendance=[rec('same','旷课',{time:'2026-01-01'}),rec('same','签到',{time:'2026-02-01'}),rec('custom','工具未还'),rec('leave','请假')];assert.equal(calc(a).attendanceFacts.actualTruant,0);assert.equal(calc(a).attendance,46);
+d.attendance=[rec('snap','迟到',{deduction:1})];d.settings.absenceDeduction=10;assert.equal(calc(a).attendance,47);
+d.attendance=[rec('loss','工具未还',{deduction:100})];assert.equal(calc(a).attendance,0);assert.equal(calc(a).regular,26);
+d.attendance=[rec('old','旷课',{lessonId:null,lesson:'旧别名'}),rec('new','签到',{lessonId:'stable',time:'2026-10-02'})];let facts=M.attendanceFacts(d,a,{resolve:()=> 'stable'});assert.equal(facts.actualTruant,0);assert.equal(facts.score,48);
+d.attendance=[];delete d.examScores.a;assert.equal(calc(a).exam,null);assert.equal(calc(a).final,null);d.examScores.a=0;assert.equal(calc(a).final,29.6);assert.equal(calc(a).exam,0);
+d.settings.passScore=100;assert(calc(a).needed>100);d.settings.passScore=60;
+assert.equal(M.calculate(d,a,undefined,{complete:false}).ready,false);
+const before=JSON.stringify(d);calc(a);assert.equal(JSON.stringify(d),before);assert.deepEqual(M.calculate(JSON.parse(before),a,undefined,{complete:true}),calc(a));
+let cfg=structuredClone(d.criterionAssessment);M.commit(d,cfg,[{key:'id:a',category:'reward',delta:1}],'测试奖励','l1');assert.equal(calc(a).regular,76.6);M.travel(d);assert.equal(calc(a).regular,74);M.travel(d,true);assert.equal(calc(a).regular,76.6);
+for(const [p,n,v] of [[4,5,4],[3,4,3.75],[5,5,5],[0,5,0]])assert.equal(M.dutyScore(p,n),v);for(const pair of [[6,5],[-1,5],[1,0],[1.5,4]])assert.throws(()=>M.dutyScore(...pair));
+cfg=structuredClone(d.criterionAssessment);const effects=M.duty(cfg,'l|g',['id:a','id:b'],3,4);M.commit(d,cfg,effects,'人数','l');assert.equal(d.criterionAssessment.duties['l|g'].score,3.75);const score=a.score;M.travel(d);assert.equal(a.score,score-3.75);M.travel(d,true);assert.equal(a.score,score);
+for(const file of ['cloud.html','index.html']){const html=fs.readFileSync(file,'utf8');for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);assert(html.includes('criterionAttendanceFacts'));assert(!html.includes('20*(total-loss)/total'));}
+const html=fs.readFileSync('cloud.html','utf8'),deductionCode=html.match(/function attendanceDeduction\(status,record\)\{[^\n]+/)[0],ctx={CriterionAssessment:M,data:{settings:{absenceDeduction:1,truantDeduction:3}},customAttendanceRules:()=>[{name:'早退',deduction:2}]};vm.createContext(ctx);vm.runInContext(deductionCode,ctx);assert.equal(ctx.attendanceDeduction('旷课'),3);assert.equal(ctx.attendanceDeduction('迟到',{deduction:.5}),.5);assert.equal(ctx.attendanceDeduction('早退'),2);
+console.log('PASS floating 52/48: existing score, realtime maximum, no free 40/no floor60/no double count, direct attendance snapshots, only actual 3 truancies, correction/dedup/aliases, exam rounding, undo redo duty, immutable restore and both HTML');

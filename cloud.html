@@ -79,7 +79,7 @@
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-17 14:30</button></small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-18 00:15</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -87,7 +87,7 @@
       <button type="button" class="score-view-toggle" id="scoreViewBtn" title="切换气泡显示本节课或整学期累计分数"><span data-score-view="lesson">本节</span><span data-score-view="term" class="active">学期</span></button>
       <button class="btn" id="attendanceBtn">考勤</button>
       <button class="btn" id="progressBtn">课程进度</button>
-      <button class="btn" id="rosterManageBtn">名单管理</button>
+      <button class="btn" id="rosterManageBtn">名单管理</button><button class="btn" id="classArchiveBtn">班级管理</button>
       <button class="btn" id="importBtn">导入名单</button>
       <button class="btn" id="backupBtn">导出备份</button>
       <button class="btn" id="restoreBtn">导入备份</button>
@@ -207,6 +207,7 @@
   <div class="auth-message" id="authMessage"></div>
 </section></div>
 
+<div class="overlay" id="classArchiveModal"><section class="panel small"><div class="panel-head"><h2>班级管理</h2><button class="close" data-close-classes>×</button></div><div class="panel-body"><p>从当前班级列表移出，完整资料留在本账号云端归档，可恢复。操作前自动下载完整备份。</p><div data-class-list></div><button class="btn" data-export-classes>导出全部班级（含归档）</button><button class="btn primary" data-archive-selected>移出所选班级（可恢复）</button><p role="status" data-class-message></p></div></section></div>
 <div class="overlay" id="profileModal"><section class="panel small">
   <div class="panel-head"><div><h2>个人信息</h2><p id="profileSummary">账号资料会同步到云端</p></div><button class="close" data-close="profileModal">×</button></div>
   <div class="form">
@@ -303,7 +304,7 @@
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20261017-criterion-auto',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20261018-floating-52-48',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{
@@ -411,7 +412,7 @@
      const clampScore=n=>Math.max(0,Math.min(100,Number(n)||0)),round1=n=>Math.round(n*10)/10;
   function activityCount(s){const lessons=new Map();data.logs.filter(l=>logBelongsTo(l,s)).forEach(l=>{const lesson=String(l.lesson||'未标注课节');lessons.set(lesson,(lessons.get(lesson)||0)+Number(l.delta||0))});let total=0;lessons.forEach((raw,lesson)=>{const limit=lessonTaskLimit(lesson);total+=Math.max(0,limit==null?raw:Math.min(limit,raw))});return round1(total)}
 
-  function attendanceModuleScore(s){const total=Math.max(1,Number(data.settings.attendanceTotalLessons)||24),loss=data.attendance.filter(a=>a.studentId===s.id||(!a.studentId&&String(a.no)===String(s.studentNo))).reduce((sum,a)=>sum+attendanceDeduction(a.status,a),0);return round1(Math.max(0,Math.min(20,20*(total-loss)/total)))}
+  function attendanceModuleScore(s){return criterionAttendanceFacts(s).score}
   function homeworkModuleScore(s){return clampScore(100+data.homework.filter(h=>h.studentId===s.id||(!h.studentId&&String(h.no)===String(s.studentNo))).reduce((sum,h)=>sum+Number(h.delta||0),0))}
   function homeworkHistory(){if(!data.homework.length)return '<div class="empty" style="padding:25px">还没有作业扣分或加分记录</div>';return `<div class="homework-history">${[...data.homework].sort((a,b)=>String(b.time).localeCompare(String(a.time))).map(h=>`<div class="homework-item"><span>${esc(h.no)}<br><b>${esc(h.name)}</b></span><span>${esc(h.reason||'作业分调整')}</span><b class="delta ${h.delta>0?'plus':'minus'}">${h.delta>0?'+':''}${h.delta}</b><button data-delhomework="${esc(h.id)}">删除</button></div>`).join('')}</div>`}
   function assessmentPage(){return assessmentPageByRegularScore()}
@@ -419,7 +420,8 @@
   let criterionGroupOverride=null;
   window.openCriterionForGroup=group=>{criterionGroupOverride=group?{data,group}:null;document.querySelector('#groupingModal')?.classList.remove('open');openModal('databaseModal');document.querySelector('[data-tab=assessment]')?.click();document.querySelector('[data-entry-panel]')?.setAttribute('open','');const select=document.querySelector('[data-duty-group]');if(select&&group){select.value=group.id;select.dispatchEvent(new Event('change',{bubbles:true}))}};
   function criterionDutyIds(){const sorted=[...data.students].sort((a,b)=>Number(shortNo(a.studentNo,0))-Number(shortNo(b.studentNo,0))||String(a.studentNo).localeCompare(String(b.studentNo),undefined,{numeric:true})),start=((lessonNo()-1)*4)%Math.max(1,sorted.length);return Array.from({length:Math.min(4,sorted.length)},(_,i)=>sorted[(start+i)%sorted.length].id)}
-  function criterionContext(){return {data,lesson:()=>currentLesson,lessonKey:()=>window.ScheduleManager?.resolve(data.lessonSchedule||[],currentLesson)||currentLesson,groups:()=>criterionGroupOverride?.data===data?[...(data.grouping?.groups||[]).filter(g=>g.id!==criterionGroupOverride.group.id),criterionGroupOverride.group]:data.grouping?.groups||[],dutyIds:criterionDutyIds,attendance:attendanceModuleScore,coverage:criterionCoverage,save:()=>{save();refreshScoreDisplays()},render:()=>{document.querySelector('#page-assessment').innerHTML=assessmentPageByRegularScore()},message:toast,download}}
+  function criterionAttendanceFacts(s){return CriterionAssessment.attendanceFacts(data,s,{deduction:attendanceDeduction,resolve:value=>window.ScheduleManager?.resolve(data.lessonSchedule||[],value)})}
+  function criterionContext(){return {data,lesson:()=>currentLesson,lessonKey:()=>window.ScheduleManager?.resolve(data.lessonSchedule||[],currentLesson)||currentLesson,groups:()=>criterionGroupOverride?.data===data?[...(data.grouping?.groups||[]).filter(g=>g.id!==criterionGroupOverride.group.id),criterionGroupOverride.group]:data.grouping?.groups||[],dutyIds:criterionDutyIds,attendance:attendanceModuleScore,attendanceFacts:criterionAttendanceFacts,coverage:criterionCoverage,save:()=>{save();refreshScoreDisplays()},render:()=>{document.querySelector('#page-assessment').innerHTML=assessmentPageByRegularScore()},message:toast,download}}
   function assessmentPageByRegularScore(){return CriterionAssessmentUI.render(criterionContext())}
   function openHomework(studentId){const s=data.students.find(x=>x.id===studentId);if(!s)return;homeworkStudentId=studentId;document.querySelector('#homeworkStudent').textContent=`${shortNo(s.studentNo,0)} ${s.name} · 作业分调整`;document.querySelector('#homeworkDelta').value=-10;document.querySelector('#homeworkReason').value='未交作业';openModal('homeworkModal')}
   function saveHomework(){const s=data.students.find(x=>x.id===homeworkStudentId),delta=Number(document.querySelector('#homeworkDelta').value),reason=document.querySelector('#homeworkReason').value.trim();if(!s||!Number.isFinite(delta)||delta===0){toast('请输入非零分值');return}data.homework.unshift({id:crypto.randomUUID(),studentId:s.id,no:s.studentNo,name:s.name,delta,reason:reason||'作业分调整',time:new Date().toISOString()});save();closeModal('homeworkModal');renderDatabase();toast(`已记录 ${s.name} 作业分 ${delta>0?'+':''}${delta}`)}
@@ -611,6 +613,7 @@
 </script>
 <script src="feedback.js"></script>
 <script src="d1-cloud.js"></script>
+<script src="class-archive.js"></script>
 <script src="calendar-ui.js"></script>
 <script type="text/plain" id="legacy-supabase-cloud">
 (() => {

@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const distRoot = resolve(projectRoot, "dist");
 const sourceFiles = [
+  ["/class-archive.js", "application/javascript; charset=utf-8", "class-archive.js"],
   ["/assessment-entry.js", "application/javascript; charset=utf-8", "assessment-entry.js"],
   ["/assessment-model.js", "application/javascript; charset=utf-8", "assessment-model.js"],
   ["/assessment-ui.js", "application/javascript; charset=utf-8", "assessment-ui.js"],

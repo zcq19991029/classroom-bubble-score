@@ -1,0 +1,6 @@
+const assert=require('assert/strict'),M=require('../class-archive.js');
+const p={version:2,activeClass:'a',classes:{a:{className:'a',students:[{id:'a',score:12}],logs:[{delta:12}],attendance:[{status:'旷课'}]},b:{className:'b',students:[],lessonSchedule:[{id:'stable'}]},c:{className:'c',students:[]}}};
+const before=JSON.stringify(p),next=M.plan(p,['a','b'],'stamp');assert.equal(JSON.stringify(p),before);assert.deepEqual(Object.keys(next.classes),['c']);assert.equal(next.activeClass,'c');assert.deepEqual(next.archivedClasses[0].data,p.classes.a);assert.deepEqual(next.archivedClasses[1].data,p.classes.b);
+const restored=M.restore(next,'a|stamp');assert.deepEqual(restored.classes.a,p.classes.a);assert.equal(restored.archivedClasses.length,1);assert.equal(next.archivedClasses.length,2);
+assert.throws(()=>M.plan(p,['a','b','c'],'s'));assert.throws(()=>M.plan(p,['none'],'s'));assert.throws(()=>M.plan(p,[],'s'));assert.throws(()=>M.restore(p,'none'));const conflict=structuredClone(next);conflict.classes.a={className:'a'};assert.throws(()=>M.restore(conflict,'a|stamp'));
+assert.deepEqual(M.plan(p,['a','a'],'same').archivedClasses.map(x=>x.className),['a']);console.log('PASS recoverable class removal: immutable originals, active fallback, full history retained, restore, duplicate names, missing/conflict/all-class guards');
