@@ -98,7 +98,7 @@
   };
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const setMessage = value => { if (message) message.textContent = value || ''; };
-  const setState = (value, type = '', detail = '') => { if (!state) return; state.textContent = value; state.className = `cloud-state ${type}`; state.title = detail || value; };
+  const setState = (value, type = '', detail = '') => { if (!state) return; state.textContent = value; state.className = `cloud-state ${type}`; state.title = detail || value;const recover=document.querySelector('#reloadCloudConflict');if(recover)recover.hidden=!syncConflict; };
   const configuredApiBase = String(window.CLASSROOM_API_BASE || document.querySelector('meta[name="classroom-api-base"]')?.content || '').replace(/\/$/, '');
   // A Pages copy keeps the UI static while the Worker remains the only data
   // authority. The hostname check avoids hard-coding a cross-origin request
@@ -112,6 +112,17 @@
     return body;
   };
   window.classroomApi = api;
+  document.querySelector('#reloadCloudConflict')?.addEventListener('click', async () => {
+    if(!teacher||!syncConflict||syncInFlight||scheduleSaving)return;
+    try{
+      const pending=readPending();
+      if(pending){const key=`teacherCloudConflictBackup:${teacherKey()}:${Date.now()}`;localStorage.setItem(key,JSON.stringify(pending));if(!localStorage.getItem(key))throw Error('本机副本备份失败，尚未切换');}
+      const latest=await api('/api/workspace');if(!latest.payload?.classes||!Object.keys(latest.payload.classes).length)throw Error('云端没有有效班级，尚未切换');
+      cloudPayload=normalizePayload(latest.payload);cloudRevision=latest.updatedAt;forgetPending();clearTimeout(syncTimer);clearTimeout(syncRetryTimer);syncPending=false;syncConflict=false;
+      loading=true;try{renderClasses();const current=cloudPayload.classes[displayedClass()];if(current)window.classroomCloudBridge.setData(clone(current));}finally{loading=false}
+      setState('云端已同步');setMessage('本机冲突副本已保留；当前显示云端版本，未覆盖云端。');
+    }catch(e){setState('读取云端失败·本机已保留','error',e.message);}
+  });
   const normalizeClass = value => {
     const item = clone(value);
     if (!item || !Array.isArray(item.students)) return null;

@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../d1-cloud.js'), 'utf8');
 const copy = value => JSON.parse(JSON.stringify(value));
 const initial = {version:2,activeClass:'测试班',classes:{'测试班':{className:'测试班',students:[{id:'s1',studentNo:'01',name:'测试学生',score:0}],logs:[],attendance:[],settings:{},updatedAt:1}}};
-function element(){const classes = new Set();return {value:'',style:{},textContent:'',className:'',disabled:false,classList:{add:v=>classes.add(v),remove:v=>classes.delete(v),toggle:()=>{},contains:v=>classes.has(v)},addEventListener(){},setAttribute(){}};}
+function element(){const classes = new Set();return {value:'',style:{},textContent:'',className:'',disabled:false,classList:{add:v=>classes.add(v),remove:v=>classes.delete(v),toggle:()=>{},contains:v=>classes.has(v)},addEventListener(name,fn){this.listeners=this.listeners||new Map();this.listeners.set(name,fn)},setAttribute(){}};}
 initial.classes['测试班'].criterionAssessment={taskTarget:10,students:{'id:s1':{earned:0,status:'graded',foundation:'makeup',bonus:0,penalty:0}}};
 initial.classes['测试班'].criterionAssessment.projects=[{id:'project-1',name:'虚构项目',maximum:5,scores:{'id:s1':4}}];
 initial.classes['测试班'].criterionAssessment.duties={'lesson|group-1':{participants:3,expected:4,score:3.75,studentKeys:['id:s1']}};
@@ -59,5 +59,6 @@ function server(){return {payload:copy(initial),revision:'revision-0',writes:0,a
   b.change();await b.timer(180);assert.equal(s.writes,0);
   // A different teacher cannot replay another teacher's outbox.
   const other=boot(s,a.storage,'teacher-b');await other.ready();assert.equal(other.data.logs.length,0);assert.equal(s.writes,0);
+  await b.elements.get('#reloadCloudConflict').listeners.get('click')();await settle();assert.equal(b.data.logs.length,0);assert.equal(s.writes,0);assert([...b.storage.keys()].some(k=>k.startsWith('teacherCloudConflictBackup:teacher-a:')));assert.equal(b.storage.has('teacherCloudPending:teacher-a'),false);
   console.log('PASS refresh before save, offline reload/retry, in-flight edits, cloud conflict protection and teacher isolation');
 })().catch(error=>{console.error(error);process.exitCode=1});
