@@ -9,6 +9,7 @@ initial.classes['测试班'].criterionAssessment={taskTarget:10,students:{'id:s1
 initial.classes['测试班'].criterionAssessment.projects=[{id:'project-1',name:'虚构项目',maximum:5,scores:{'id:s1':4}}];
 initial.classes['测试班'].criterionAssessment.duties={'lesson|group-1':{participants:3,expected:4,score:3.75,studentKeys:['id:s1']}};
 initial.classes['测试班'].criterionHistory={undo:[{before:{},after:{},effects:[],label:'虚构'}],redo:[]};
+initial.classes['测试班'].settings.earlyLeaveDeduction=2;
 initial.archivedClasses=[{id:'archived-1',className:'虚构已归档',data:{className:'虚构已归档',students:[{id:'old',score:7}],logs:[{delta:7}]}}];
 async function settle(){for(let i=0;i<35;i++)await Promise.resolve();}
 function boot(server, storage = new Map(), teacherId='teacher-a') {
@@ -41,6 +42,7 @@ function server(){return {payload:copy(initial),revision:'revision-0',writes:0,a
   assert.equal(s.payload.classes['测试班'].students[0].score,1);assert.equal(s.payload.classes['测试班'].logs.length,1);assert.equal(b.storage.size,0);
   assert.deepEqual(s.payload.classes['测试班'].criterionAssessment,initial.classes['测试班'].criterionAssessment);
   assert.deepEqual(s.payload.archivedClasses,initial.archivedClasses);
+  assert.equal(s.payload.classes['测试班'].settings.earlyLeaveDeduction,2);
   // Failed saves retain score + history across a reload, then retry on reconnect.
   s=server();a=boot(s);await a.ready();s.fail=true;a.change();await a.timer(180);
   b=boot(s,a.storage);await b.ready();assert.equal(b.data.logs.length,1);s.fail=false;await b.timer(0);assert.equal(s.writes,1);

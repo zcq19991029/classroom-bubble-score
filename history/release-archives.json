@@ -1,0 +1,104 @@
+[
+  {
+    "original": "sites-calendar-fix.tar.gz",
+    "localArchive": "history/local-releases/sites-calendar-fix.tar.gz",
+    "size": 673763,
+    "sha256": "043ed97017b19314d79b49543ee2ea3524954d1ef6c4631a005f25c464fe331f"
+  },
+  {
+    "original": "sites-deploy-v17.tar.gz",
+    "localArchive": "history/local-releases/sites-deploy-v17.tar.gz",
+    "size": 1545395,
+    "sha256": "32276623b0b5eb974793afa6bfe994a96aad094e7b9692ba9848e60945febc5a"
+  },
+  {
+    "original": "sites-deploy-v18.tar.gz",
+    "localArchive": "history/local-releases/sites-deploy-v18.tar.gz",
+    "size": 1545426,
+    "sha256": "fd76187aaafde433c8d857f76299305c3c1ae9cf17e8ea60e27a6371f26aa276"
+  },
+  {
+    "original": "sites-deploy-v19.tar.gz",
+    "localArchive": "history/local-releases/sites-deploy-v19.tar.gz",
+    "size": 1545779,
+    "sha256": "c93767994a29c274df7a768a0e3128d1cc3d500eb71133b7844042554c211b57"
+  },
+  {
+    "original": "sites-deploy-v20.tar.gz",
+    "localArchive": "history/local-releases/sites-deploy-v20.tar.gz",
+    "size": 1547746,
+    "sha256": "f73b8221d014420c7fc24c21da324f33585e8cd3866ff117277509ee1903bc05"
+  },
+  {
+    "original": "sites-deploy-v25.tar.gz",
+    "localArchive": "history/local-releases/sites-deploy-v25.tar.gz",
+    "size": 1474861,
+    "sha256": "21e6fbb13d3b1641490748eabcd067c1ba363795bc406b952b8e5210fd3f7235"
+  },
+  {
+    "original": "sites-deploy-v26.tar.gz",
+    "localArchive": "history/local-releases/sites-deploy-v26.tar.gz",
+    "size": 1474865,
+    "sha256": "2c5ace1169b3af943795ef982121bd69effcc0788f52e0d93789dd9830d38324"
+  },
+  {
+    "original": "sites-deploy-v27.tar.gz",
+    "localArchive": "history/local-releases/sites-deploy-v27.tar.gz",
+    "size": 9850104,
+    "sha256": "25ba82a3332e3fbd7f0b5b2867e628d6c5d8d28f471f127c30ffed18ab9707b2"
+  },
+  {
+    "original": "sites-deploy-v28.tar.gz",
+    "localArchive": "history/local-releases/sites-deploy-v28.tar.gz",
+    "size": 9850110,
+    "sha256": "c3111a742ecefcf2fb49ae2a768475d712c55fecbaeb854c274621ba2e16f8d9"
+  },
+  {
+    "original": "sites-legacy-fix.tar.gz",
+    "localArchive": "history/local-releases/sites-legacy-fix.tar.gz",
+    "size": 673983,
+    "sha256": "66deab82cbff9a641638339399620904aac087dbe024d3e73e3701aeb6ed9b1c"
+  },
+  {
+    "original": "sites-release-d1-cutover.tar.gz",
+    "localArchive": "history/local-releases/sites-release-d1-cutover.tar.gz",
+    "size": 667090,
+    "sha256": "0f927fea0519f379b1aa8673415c8bbc8e69ed1048bba58b806ef3ced129bee6"
+  },
+  {
+    "original": "sites-release-final.tar.gz",
+    "localArchive": "history/local-releases/sites-release-final.tar.gz",
+    "size": 502494,
+    "sha256": "97a2205a2afeff471b37656612b85e25053f832097b138f8ec565e98d768a7b8"
+  },
+  {
+    "original": "sites-release-migration.tar.gz",
+    "localArchive": "history/local-releases/sites-release-migration.tar.gz",
+    "size": 504590,
+    "sha256": "7ba4896c9e13e9af295d97189fe0f5037e02c3f8681291bba00da8caf3963cea"
+  },
+  {
+    "original": "sites-release-new.tar.gz",
+    "localArchive": "history/local-releases/sites-release-new.tar.gz",
+    "size": 502263,
+    "sha256": "0db88d8dbb42b951d43186ea62ba888e22075cd9ff2534ff644a0c798a2481fc"
+  },
+  {
+    "original": "tmp/attendance-label.tar.gz",
+    "localArchive": "history/local-releases/attendance-label.tar.gz",
+    "size": 674712,
+    "sha256": "b3c60c77571ce890035b8bf168bed660b676cd5bb2ef9e3a1adab7dab373eb17"
+  },
+  {
+    "original": "tmp/bubble-final.tar.gz",
+    "localArchive": "history/local-releases/bubble-final.tar.gz",
+    "size": 674446,
+    "sha256": "315a3f5802a4c207471001819275b8d36629244acf431f1a704bd822c23d3c95"
+  },
+  {
+    "original": "tmp/bubble-identity.tar.gz",
+    "localArchive": "history/local-releases/bubble-identity.tar.gz",
+    "size": 674445,
+    "sha256": "769afd5a87f9e9fba44181210ac2b8a9c3a41625bb1b15bd89b6127178e4f24d"
+  }
+]

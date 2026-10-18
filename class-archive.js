@@ -7,7 +7,7 @@
  if(typeof document==='undefined')return;
  const button=document.querySelector('#classArchiveBtn'),modal=document.querySelector('#classArchiveModal');if(!button||!modal)return;
  const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- function render(){const p=root.classroomClassManager.snapshot(),body=modal.querySelector('[data-class-list]');body.innerHTML=Object.keys(p.classes).map(n=>`<label style="display:block;padding:8px"><input type="checkbox" data-archive-class value="${esc(n)}"> ${esc(n)}</label>`).join('')+'<h3>已移出的可恢复班级</h3>'+(p.archivedClasses||[]).map(a=>`<p>${esc(a.className)} <button class="btn" data-restore-class="${esc(a.id)}">恢复</button></p>`).join('');}
+ function render(){const p=root.classroomClassManager.snapshot(),body=modal.querySelector('[data-class-list]');body.innerHTML=Object.keys(p.classes).filter(n=>!root.classroomIsMaintenanceClass?.(n,p.classes[n])).map(n=>`<label style="display:block;padding:8px"><input type="checkbox" data-archive-class value="${esc(n)}"> ${esc(n)}</label>`).join('')+'<h3>已移出的可恢复班级</h3>'+(p.archivedClasses||[]).map(a=>`<p>${esc(a.className)} <button class="btn" data-restore-class="${esc(a.id)}">恢复</button></p>`).join('');}
  button.addEventListener('click',()=>{try{render();modal.classList.add('show')}catch(e){alert(e.message)}});
  modal.querySelector('[data-export-classes]').onclick=()=>root.classroomClassManager.backupAll();
  modal.querySelector('[data-close-classes]').onclick=()=>modal.classList.remove('show');

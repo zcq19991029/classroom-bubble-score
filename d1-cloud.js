@@ -133,9 +133,13 @@
     next.activeClass = value && next.classes[value.activeClass] ? value.activeClass : Object.keys(next.classes)[0] || '';
     return next;
   };
+  // The old maintenance workspace remains in backups, never in classroom menus.
+  window.classroomIsMaintenanceClass = (name,item) => name==='云端验收测试班20261006' && Array.isArray(item?.students) && item.students.length>0 && item.students.every(s=>String(s.studentNo||'').startsWith('TEST20261006'));
+  const visibleClassNames = () => Object.keys(cloudPayload.classes).filter(name=>!window.classroomIsMaintenanceClass(name,cloudPayload.classes[name]));
+  const displayedClass = () => {const names=visibleClassNames();return names.includes(cloudPayload.activeClass)?cloudPayload.activeClass:names[0]||''};
   const renderClasses = () => {
     if (!classSwitcher) return;
-    const names = Object.keys(cloudPayload.classes);
+    const names = visibleClassNames();
     classSwitcher.innerHTML = names.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
     classSwitcher.value = names.includes(cloudPayload.activeClass) ? cloudPayload.activeClass : names[0] || '';
     classSwitcher.disabled = !teacher || names.length < 2;
@@ -231,7 +235,7 @@
         forgetPending();
       }
       renderClasses();
-      const current = cloudPayload.classes[cloudPayload.activeClass];
+      const current = cloudPayload.classes[displayedClass()];
       if (current) window.classroomCloudBridge.setData(clone(current));
       if (recoveredLocal) {
         rememberPending();
