@@ -68,7 +68,6 @@
     const e=data.examScores?.[s.id],exam=numeric(e)&&Number(e)>=0&&Number(e)<=100?Number(e):null;
     const foundation=['met','makeup'].includes(r.foundation)?r.foundation:'pending',reasons=[];
     if(!target)reasons.push('本班尚无正累计积分，学习暂按0');
-    if(foundation!=='met')reasons.push(foundation==='makeup'?'待补做':'基础待确认');
     if(!coverage?.complete)reasons.push('考勤未齐，按已登记记录预估');
     if(facts.unknown)reasons.push('存在未关联课次的考勤，次数待核对');
     const final=exam===null?null:round(contributionRaw+exam*.6);

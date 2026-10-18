@@ -14,7 +14,6 @@
  };
  U.change=(ctx,e)=>{const el=e.target,c=copy(config(ctx));
  if(el.matches('[data-duty-group]')){el.closest('.assessment-settings').querySelector('[data-duty-expected]').value=groups(ctx).find(g=>g.id===el.value)?.studentIds.length||'';return true;}
- if(el.matches('[data-criterion-field="foundation"]')){let saved=false;const before=copy(c),proxy={...ctx,save:()=>{saved=true},render:()=>{}};const used=base.change(proxy,e);if(saved){const next=copy(config(ctx));ctx.data.criterionAssessment=before;write(ctx,next,[],'基础确认')}else ctx.render();return used;}
  return base.change(ctx,e);
  };
  U.action=(ctx,e)=>{const b=e.target,root=b.closest('#page-assessment'),c=copy(config(ctx));

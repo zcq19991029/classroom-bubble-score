@@ -1,5 +1,7 @@
 # 课堂气泡赋分系统
 
+本地待发布收尾：人工基础核对模块已移除，历史foundation字段保留兼容但不影响资料完整度；CSV/PDF移除基础确认列。资料状态只依据正累计基准、考勤覆盖和未关联记录。表格新增常驻横向滚动条、键盘聚焦和左右滑动说明，保证最右侧成绩可访问。未改生产数据或发布。
+
 [正式站](https://classroom-bubble-score.zcq991029.chatgpt.site) · [GitHub源码](https://github.com/zcq19991029/classroom-bubble-score) · [使用指南](docs/使用指南.md) · [课表说明](课表使用说明.md)
 
 课堂随堂加减分、分组、考勤和综合成绩工具。正式入口为`cloud.html`，权威数据为同站Sites Worker＋D1 `DB`，账号和班级隔离。GitHub保存源码，不提供替代数据后端。当前计算沿用气泡学期累计与本班实时最高累计的比例，不采用项目满分。
