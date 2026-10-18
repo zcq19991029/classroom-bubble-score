@@ -69,3 +69,7 @@ rtk proxy node scripts/test-workspace-cas.cjs
 旧规则与历次验证快照见[历史README](history/docs/README-before-attendance-fix.md)和[历史交接](history/docs/项目交接截至20261018.md)。旧项目公式、旧“不折算”说明均不再生效。当前发布和真实回读见[项目交接](项目交接.md)。
 
 ![隔离虚构数据：折算与精度验收](docs/screenshots/attendance-folding.png)
+
+本轮正式回读：页面标记2026-10-18 02:09，默认仅两个机电班，原维护测试班仍保留在完整备份；原3个归档班未恢复。发布前后完整UI备份中所有班级业务字段及archivedClasses一致（仅忽略自动保存时间）。14个相关测试脚本通过，DB健康接口正常。真实早退输入1和新规则说明已核对，既有其他扣分设置未改。
+
+![正式早退设置，截图不含学生名单](docs/screenshots/attendance-default-live.png)
