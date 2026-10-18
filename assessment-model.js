@@ -12,13 +12,20 @@
   function dutyScore(participants,expected){if(!Number.isInteger(participants)||!Number.isInteger(expected)||expected<=0||participants<0||participants>expected)throw Error('参与/应到人数须为有效整数，参与不能超过应到');return Math.round(500*participants/expected)/100;}
   function duty(next,recordKey,ids,participants,expected){const score=dutyScore(participants,expected),old=next.duties?.[recordKey];next.duties=next.duties||{};next.duties[recordKey]={studentKeys:[...ids],participants,expected,score};const keys=new Set([...(old?.studentKeys||[]),...ids]);return [...keys].map(k=>({key:k,category:'reward',delta:Math.round(((ids.includes(k)?score:0)-(old?.studentKeys?.includes(k)?Number(old.score)||0:0))*100)/100}));}
   // Attendance units are direct points out of 48, independent of schedule length.
+  const attendanceDefaults=Object.freeze({'签到':0,'请假':0,'公假':0,'迟到':1,'早退':1,'旷课':3,'缺勤':3});
+  function attendancePolicy(payload={}){
+    if(payload.attendancePolicy?.version===1)return copy(payload.attendancePolicy);
+    const candidates=new Map();
+    const classes=[...Object.values(payload.classes||{}),...(payload.archivedClasses||[]).map(x=>x.data||x.classData||x)];
+    for(const c of classes)for(const r of c.settings?.customAttendanceRules||[]){if(Object.hasOwn(attendanceDefaults,r.name)||!numeric(r.deduction))continue;if(!candidates.has(r.name))candidates.set(r.name,new Set());candidates.get(r.name).add(Math.max(0,Number(r.deduction)));}
+    return {version:1,customRules:[...candidates].map(([name,values])=>({name,deduction:values.size===1?[...values][0]:null,needsReview:values.size!==1})),retiredRules:[]};
+  }
   function attendanceDeduction(settings={},status,record){
+    if(Object.hasOwn(attendanceDefaults,status))return attendanceDefaults[status];
+    const shared=settings.attendancePolicy?.customRules?.find(r=>r.name===status)||settings.attendancePolicy?.retiredRules?.find(r=>r.name===status);
+    if(numeric(shared?.deduction))return Math.max(0,Number(shared.deduction));
     if(numeric(record?.deduction))return Math.max(0,Number(record.deduction));
-    if(['签到','请假'].includes(status))return 0;
     const custom=(settings.customAttendanceRules||[]).find(r=>r.name===status);
-    if(status==='早退')return Math.max(0,Number(numeric(custom?.deduction)?custom.deduction:numeric(settings.earlyLeaveDeduction)?settings.earlyLeaveDeduction:1));
-    if(status==='迟到')return Math.max(0,Number(numeric(settings.absenceDeduction)?settings.absenceDeduction:1));
-    if(['旷课','缺勤'].includes(status))return Math.max(0,Number(numeric(settings.truantDeduction)?settings.truantDeduction:3));
     return Math.max(0,Number(custom?.deduction)||0);
   }
   function attendanceFacts(data,s,options={}){
@@ -39,7 +46,8 @@
     }
     let loss=0,actualTruant=0,late=0,early=0;
     for(const {record:a,known} of latest.values()){
-      const deduction=attendanceDeduction(data.settings,a.status,a);
+      if(options.policy?.customRules?.some(r=>r.name===a.status&&r.needsReview))unknown=true;
+      const deduction=options.deduction?options.deduction(a.status,a):attendanceDeduction(data.settings,a.status,a);
       loss+=Math.max(0,Number(deduction)||0);
       if(a.status==='旷课'&&known)actualTruant++;
       if(a.status==='迟到'&&known)late++;
@@ -66,7 +74,17 @@
     const final=exam===null?null:round(contributionRaw+exam*.6);
     return {key:key(s),target,earned,rate,learning,attendance:round(att),regular,contribution,contributionRaw,needed,exam,final,foundation,ready:!reasons.length,reasons,attendanceFacts:facts,attendanceFailed:facts.failed,result:facts.failed?'考勤挂科（实际＋折算旷课达到3次）':final===null?'待考':reasons.length?'预估/待复核':final>=pass?'及格':'不及格'};
   }
-  const api={calculate,attendanceFacts,attendanceDeduction,key,round,numeric,commit,travel,duty,dutyScore};
+  function attendanceLesson(data,a){
+    const rows=[...(data.lessonSchedule||[]),...(data.archivedLessons||[])],identity=v=>String(v||'').replace(/第\d+周\s*·\s*/,'').trim();
+    let row=rows.find(r=>r.id===a.lessonId);
+    if(!row){const hits=rows.filter(r=>(r.aliases||[]).some(v=>identity(v)===identity(a.lesson)));if(hits.length===1)row=hits[0];}
+    return row?{key:'lesson:'+row.id,label:row.aliases?.at(-1)||[row.date,row.period,row.course].filter(Boolean).join(' · '),date:row.date||''}:{key:'unknown:'+String(a.date||'')+'|'+String(a.lesson||'未标注课节'),label:(a.lesson||'未标注课节')+'（课次待核对）',date:a.date||''};
+  }
+  function attendanceGroups(data){
+    const groups=new Map();for(const a of data.attendance||[]){const lesson=attendanceLesson(data,a);if(!groups.has(lesson.key))groups.set(lesson.key,{...lesson,latest:new Map()});const g=groups.get(lesson.key),student=a.studentId?'id:'+a.studentId:'no:'+a.no,old=g.latest.get(student);if(!old||String(a.time||'')>String(old.time||''))g.latest.set(student,a);}
+    return [...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.key.localeCompare(b.key)).map(g=>({...g,items:[...g.latest.values()].sort((a,b)=>String(a.no).localeCompare(String(b.no),undefined,{numeric:true}))}));
+  }
+  const api={calculate,attendanceFacts,attendanceDeduction,attendanceDefaults,attendancePolicy,attendanceLesson,attendanceGroups,key,round,numeric,commit,travel,duty,dutyScore};
   if(typeof module!=='undefined')module.exports=api;
   root.CriterionAssessment=api;
 })(typeof window==='undefined'?globalThis:window);

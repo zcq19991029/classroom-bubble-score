@@ -16,7 +16,7 @@ function boot(server, storage = new Map(), teacherId='teacher-a') {
   const elements=new Map(), timers=new Map(), events=new Map();let timerId=0;
   let current=copy(initial.classes['测试班']);
   const context={window:null,document:{querySelector(selector){if(!elements.has(selector))elements.set(selector,element());return elements.get(selector);},addEventListener(name,fn){events.set(name,fn)}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},location:{hostname:'localhost'},navigator:{},setTimeout(fn,ms){timers.set(++timerId,{fn,ms});return timerId;},clearTimeout:id=>timers.delete(id),Date,Blob,URL,alert(){},toast(){},console,addEventListener(name,fn){events.set(name,fn)},classroomCloudBridge:{getData:()=>current,setData:value=>{current=copy(value)}}};
-  context.window=context;
+  context.window=context;context.CriterionAssessment=require('../assessment-model.js');
   context.fetch=async (url,options)=>{
     if(url==='/api/auth/session')return {ok:true,json:async()=>({teacher:{id:teacherId,employeeNo:teacherId}})};
     if(url==='/api/workspace'&&options.method==='PUT'){
@@ -60,5 +60,10 @@ function server(){return {payload:copy(initial),revision:'revision-0',writes:0,a
   // A different teacher cannot replay another teacher's outbox.
   const other=boot(s,a.storage,'teacher-b');await other.ready();assert.equal(other.data.logs.length,0);assert.equal(s.writes,0);
   await b.elements.get('#reloadCloudConflict').listeners.get('click')();await settle();assert.equal(b.data.logs.length,0);assert.equal(s.writes,0);assert([...b.storage.keys()].some(k=>k.startsWith('teacherCloudConflictBackup:teacher-a:')));assert.equal(b.storage.has('teacherCloudPending:teacher-a'),false);
+  // Shared policy persists independently of class facts, survives offline/outbox and rejects stale writes.
+  s=server();a=boot(s);await a.ready();const before=copy(a.context.classroomClassManager.snapshot().classes);const policy=a.context.classroomAttendancePolicy.get();policy.customRules.push({name:'工具未还',deduction:2});await a.context.classroomAttendancePolicy.save(policy);assert.deepEqual(s.payload.classes,before);assert.equal(s.payload.attendancePolicy.customRules[0].deduction,2);
+  b=boot(s);await b.ready();assert.equal(b.context.classroomAttendancePolicy.get().customRules[0].deduction,2);b.change();s.fail=true;await b.timer(180);s.fail=false;const recovered=boot(s,b.storage);await recovered.ready();await recovered.timer(0);assert.equal(s.payload.attendancePolicy.customRules[0].deduction,2);
+  a=boot(s);await a.ready();s.revision='another-device';s.payload.attendancePolicy.customRules[0].deduction=4;await assert.rejects(a.context.classroomAttendancePolicy.save(policy),/409|云端|变化/);assert.equal(s.payload.attendancePolicy.customRules[0].deduction,4);
+  s=server();a=boot(s);await a.ready();s.fail=true;const offlinePolicy=a.context.classroomAttendancePolicy.get();offlinePolicy.customRules.push({name:'离线原因',deduction:2});await assert.rejects(a.context.classroomAttendancePolicy.save(offlinePolicy),/断网|失败/);b=boot(s,a.storage);await b.ready();assert.equal(b.context.classroomAttendancePolicy.get().customRules[0].name,'离线原因');s.fail=false;await b.timer(0);assert.equal(s.payload.attendancePolicy.customRules[0].deduction,2);
   console.log('PASS refresh before save, offline reload/retry, in-flight edits, cloud conflict protection and teacher isolation');
 })().catch(error=>{console.error(error);process.exitCode=1});

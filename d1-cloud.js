@@ -139,6 +139,7 @@
   const normalizePayload = value => {
     const next = { version: 2, activeClass: '', classes: {} };
     if (Array.isArray(value?.archivedClasses)) next.archivedClasses = clone(value.archivedClasses);
+    if(value?.attendancePolicy)next.attendancePolicy=clone(value.attendancePolicy);
     const classes = value && value.classes && typeof value.classes === 'object' ? value.classes : {};
     Object.entries(classes).forEach(([key, value]) => { const item = normalizeClass(value); if (item) next.classes[item.className || key] = item; });
     next.activeClass = value && next.classes[value.activeClass] ? value.activeClass : Object.keys(next.classes)[0] || '';
@@ -155,6 +156,19 @@
     classSwitcher.value = names.includes(cloudPayload.activeClass) ? cloudPayload.activeClass : names[0] || '';
     classSwitcher.disabled = !teacher || names.length < 2;
     classSwitcher.title = names.length > 1 ? '点击切换班级' : `当前班级：${classSwitcher.value || '未加载'}`;
+  };
+  window.classroomAttendancePolicy={
+    get(){return CriterionAssessment.attendancePolicy(cloudPayload)},
+    async save(policy){
+      if(!teacher||loading||syncConflict)throw Error('请先登录并解决同步冲突');
+      if(scheduleSaving||syncInFlight)throw Error('正在同步，请稍后重试');
+      cloudPayload.attendancePolicy=clone(policy);cloudPayload.attendancePolicy.version=1;
+      editGeneration++;syncPending=true;clearTimeout(syncTimer);
+      // Reuse the teacher-scoped durable outbox and CAS; offline rules survive reloads.
+      if(!rememberPending())throw Error('本机备份失败，请保持页面打开并重试');
+      await flush();
+      if(syncPending)throw Error(syncConflict?'云端已变化，统一规则待核对，本机已保留':'断网或保存失败：统一规则已留本机，将自动重试');
+    }
   };
   window.classroomClassManager = {
     snapshot(){if(!teacher||loading)throw Error('请等待登录和同步完成');return clone(cloudPayload)},

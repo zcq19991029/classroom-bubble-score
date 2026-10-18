@@ -2,7 +2,7 @@
  'use strict';const M=root.CriterionAssessment;
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const shown=v=>v===null||v===undefined?'—':v;
- const explanation='学习分＝52×clamp(个人原始累计÷本班实时最高累计积分,0,1)，不赠基础分；考勤分＝max(0,48−已登记累计扣分)，平时分＝学习＋考勤。48课时＝24大节，每小节40分钟，每大节80分钟；不改实际课表。旷课每大节默认扣3分，历史扣分快照保留。迟到和早退各默认扣1分，合计每3次折算1次旷课，保留余数；实际＋折算旷课合计达到3次按本课程规则考勤挂科。已扣分不因折算再扣3分，自定义原因不猜测归类。考勤挂科期末需考不适用，考试分不能解除。未登记考勤仅预估，不补签到。';
+ const explanation='学习分＝52×clamp(个人原始累计÷本班实时最高累计积分,0,1)，不赠基础分；考勤分＝max(0,48−已登记累计扣分)，平时分＝学习＋考勤。48课时＝24大节，每小节40分钟，每大节80分钟；不改实际课表。所有老师统一默认：签到、请假、公假扣0，旷课每大节扣3分，迟到和早退各扣1分；旧设置及快照保留备查，标准类别有效扣分以统一规则为准。自定义原因在同账号全部班级、科目共用，修改后历史有效扣分自动重算。迟到和早退，合计每3次折算1次旷课，保留余数；实际＋折算旷课合计达到3次按本课程规则考勤挂科。已扣分不因折算再扣3分，自定义原因不猜测归类。考勤挂科期末需考不适用，考试分不能解除。未登记考勤仅预估，不补签到。';
  function items(ctx){return ctx.data.students.map(s=>({s,...M.calculate(ctx.data,s,ctx.attendance(s),ctx.coverage(s),ctx.attendanceFacts?.(s)),dutySummary:Object.entries(ctx.data.criterionAssessment?.duties||{}).filter(([k,d])=>d.studentKeys.includes(M.key(s))).map(([k,d])=>k+': '+d.participants+'/'+d.expected+'人='+d.score+'分').join('；')}));}
  const headers=['学号','姓名','平时百分制/100','平时折合/40','期末至少需考/100','原始累计','本班实时最高积分','累计比例','学习/52','考勤/48','考勤扣分','实际旷课大节','迟到次数','早退次数','折算旷课次数','不足3次余数','合计旷课次数','实际期末','综合数值/100','课程判定','基础确认','资料状态','值日人数与分数'];
  const needed=x=>x.attendanceFailed?'不适用（考勤挂科）':x.needed>100?x.needed+'（超过100，无法达到）':x.needed;
