@@ -32,11 +32,11 @@ async function main(){
   const newSettings={taskTarget:10,students:{'id:s1':{earned:0,status:'graded',foundation:'makeup',bonus:0,penalty:0}}};
   newSettings.projects=[{id:'p1',name:'虚构项目',maximum:5,scores:{'id:s1':4}}];newSettings.duties={'stable-lesson|group':{participants:3,expected:4,score:3.75,studentKeys:['id:s1']}};
   const criterionPayload=structuredClone(casPayload);criterionPayload.classes['测试班'].criterionAssessment=newSettings;
-  criterionPayload.classes['测试班'].settings={earlyLeaveDeduction:2};criterionPayload.attendancePolicy={version:1,customRules:[{name:'工具未还',deduction:2}],retiredRules:[]};
+  criterionPayload.classes['测试班'].attendanceReview={old:{action:'assign',lessonKey:'lesson:existing',reviewedAt:'2026-10-19'}};criterionPayload.classes['测试班'].settings={earlyLeaveDeduction:2};criterionPayload.attendancePolicy={version:1,customRules:[{name:'工具未还',deduction:2}],retiredRules:[]};
   criterionPayload.archivedClasses=[{id:'old|test',className:'虚构已移出',data:{className:'虚构已移出',students:[{id:'old',score:8}],logs:[{delta:8}],attendance:[],lessonSchedule:[{id:'stable'}]}}];
   assert.equal((await call('PUT',{payload:criterionPayload,expectedUpdatedAt:saved.body.updatedAt})).status,200);
   const restored=(await call('GET')).body.payload;assert.deepEqual(restored.classes['测试班'].criterionAssessment,newSettings);
-  assert.equal(restored.attendancePolicy.customRules[0].deduction,2);delete restored.attendancePolicy;assert.equal(restored.classes['测试班'].settings.earlyLeaveDeduction,2);delete restored.classes['测试班'].settings;
+  assert.equal(restored.attendancePolicy.customRules[0].deduction,2);delete restored.attendancePolicy;assert.equal(restored.classes['测试班'].attendanceReview.old.lessonKey,'lesson:existing');delete restored.classes['测试班'].attendanceReview;assert.equal(restored.classes['测试班'].settings.earlyLeaveDeduction,2);delete restored.classes['测试班'].settings;
   assert.deepEqual(restored.archivedClasses,criterionPayload.archivedClasses);delete restored.archivedClasses;
   delete restored.classes['测试班'].criterionAssessment;assert.deepEqual(restored,casPayload);
   console.log('PASS Worker workspace CAS: initial insert, legacy overwrite rejection, stale revision rejection, current revision update');

@@ -35,6 +35,7 @@
       return resolved.known?resolved.key:null;
     }
     for(const a of data.attendance||[]){if(!(a.studentId===s.id||(!a.studentId&&String(a.no)===String(s.studentNo))))continue;
+      if(attendanceLesson(data,a).ignored)continue;
       const lesson=resolve(a);
       if(!lesson)unknown=true;const k=lesson||('unknown:'+(a.id||latest.size));
       const old=latest.get(k);if(!old||String(a.time||'')>String(old.record.time||''))latest.set(k,{record:a,known:!!lesson});
@@ -69,6 +70,9 @@
     return {key:key(s),target,earned,rate,learning,attendance:round(att),regular,contribution,contributionRaw,needed,exam,final,foundation,ready:!reasons.length,reasons,attendanceFacts:facts,attendanceFailed:facts.failed,result:facts.failed?'考勤挂科（实际＋折算旷课达到3次）':final===null?'待考':reasons.length?'预估/待复核':final>=pass?'及格':'不及格'};
   }
   function attendanceLesson(data,a){
+    const review=a.id&&data.attendanceReview?.[a.id];
+    if(review?.action==='ignore')return {key:'ignored:'+a.id,known:false,ignored:true,label:(a.lesson||'未标注课节')+'（已忽略）',date:a.date||''};
+    if(review?.action==='assign'){const target=attendanceTargets(data).find(t=>t.key===review.lessonKey);if(target)return {...target,known:true,reviewed:true};return {key:'review-invalid:'+a.id,known:false,label:(a.lesson||'未标注课节')+'（核对归属已失效）',date:a.date||''};}
     const rows=[...(data.lessonSchedule||[]),...(data.archivedLessons||[])],identity=v=>String(v||'').replace(/第\d+周\s*·\s*/,'').trim();
     let row=a.lessonId?rows.find(r=>r.id===a.lessonId):null;
     if(!row){const hits=rows.filter(r=>(r.aliases||[]).some(v=>identity(v)===identity(a.lesson)));if(hits.length===1)row=hits[0];}
@@ -80,7 +84,7 @@
     return {key:'unknown:'+String(a.date||'')+'|'+String(a.lesson||'未标注课节'),known:false,label:(a.lesson||'未标注课节')+'（课次待核对）',date:a.date||''};
   }
   function attendanceGroups(data){
-    const groups=new Map();for(const [index,a] of (data.attendance||[]).entries()){const lesson=attendanceLesson(data,a);if(!groups.has(lesson.key))groups.set(lesson.key,{...lesson,latest:new Map(),records:[]});const g=groups.get(lesson.key),student=a.studentId?'id:'+a.studentId:a.no!=null&&String(a.no).trim()?'no:'+a.no:'unidentified:'+index,old=g.latest.get(student);g.records.push(a);if(!old||String(a.time||'')>String(old.time||''))g.latest.set(student,a);}
+    const groups=new Map();for(const [index,a] of (data.attendance||[]).entries()){const lesson=attendanceLesson(data,a);if(!groups.has(lesson.key))groups.set(lesson.key,{...lesson,latest:new Map(),records:[]});const g=groups.get(lesson.key),student=a.studentId?'id:'+a.studentId:a.no!=null&&String(a.no).trim()?'no:'+a.no:'unidentified:'+index,old=g.latest.get(student);g.records.push(a);if(!lesson.ignored&&(!old||String(a.time||'')>String(old.time||'')))g.latest.set(student,a);}
     return [...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.key.localeCompare(b.key)).map(g=>({...g,records:[...g.records].sort((a,b)=>String(b.time||'').localeCompare(String(a.time||''))),items:[...g.latest.values()].sort((a,b)=>String(a.no).localeCompare(String(b.no),undefined,{numeric:true}))}));
   }
   function attendanceCoverage(data,s,date){
@@ -88,7 +92,18 @@
     for(const a of data.attendance||[]){if(!(a.studentId===s.id||(!a.studentId&&String(a.no)===String(s.studentNo))))continue;const r=attendanceLesson(data,a);if(r.known)known.add(r.key);}
     return {complete:due.length>0&&due.every(r=>{const ref=r.id?'lesson:'+r.id:'legacy:'+JSON.stringify([data.className,r.date,r.period,r.course]);return known.has(ref)})};
   }
-  const api={calculate,attendanceFacts,attendanceDeduction,attendanceDefaults,attendancePolicy,attendanceLesson,attendanceGroups,attendanceCoverage,key,round,numeric,commit,travel,duty,dutyScore};
+  function attendanceTargets(data){
+    const targets=new Map();for(const r of [...(data.lessonSchedule||[]),...(data.archivedLessons||[])]){const stable=r.id!=null&&String(r.id).trim(),valid=/^\d{4}-\d{2}-\d{2}$/.test(r.date||'')&&/^\d{1,2}-\d{1,2}$/.test(r.period||'')&&r.course&&data.className;if(!stable&&!valid)continue;const key=stable?'lesson:'+r.id:'legacy:'+JSON.stringify([data.className,r.date,r.period,r.course]);if(!targets.has(key))targets.set(key,{key,label:[r.date,r.period&&r.period+'节',r.course,r.cancelled?'已归档':''].filter(Boolean).join(' · ')||r.aliases?.at(-1)||String(r.id),date:r.date||''});}return [...targets.values()];
+  }
+  function reviewAttendance(data,ids,action,lessonKey){
+    if(!['assign','ignore','clear'].includes(action))throw Error('无效的核对操作');
+    if(action==='assign'&&!attendanceTargets(data).some(t=>t.key===lessonKey))throw Error('请选择当前班级有效课次');
+    const records=ids.map(id=>{const hits=(data.attendance||[]).filter(a=>a.id===id);if(!id||hits.length!==1)throw Error('记录身份缺失或重复，不能自动核对');return hits[0]});if(!records.length)throw Error('请先勾选待核对记录');
+    const before=copy(data.attendanceReview||{}),next=copy(before),time=new Date().toISOString();for(const r of records){if(action==='clear')delete next[r.id];else next[r.id]={action,...(action==='assign'?{lessonKey}:{}),reviewedAt:time};}
+    data.attendanceReview=next;data.attendanceReviewHistory=data.attendanceReviewHistory||[];data.attendanceReviewHistory.push({before,after:copy(next),time});
+  }
+  function undoAttendanceReview(data){const last=data.attendanceReviewHistory?.pop();if(!last)return false;data.attendanceReview=copy(last.before);return true;}
+  const api={calculate,attendanceFacts,attendanceDeduction,attendanceDefaults,attendancePolicy,attendanceLesson,attendanceGroups,attendanceCoverage,attendanceTargets,reviewAttendance,undoAttendanceReview,key,round,numeric,commit,travel,duty,dutyScore};
   if(typeof module!=='undefined')module.exports=api;
   root.CriterionAssessment=api;
 })(typeof window==='undefined'?globalThis:window);
