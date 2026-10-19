@@ -77,11 +77,11 @@
     const rows=[...(data.lessonSchedule||[]),...(data.archivedLessons||[])],identity=v=>String(v||'').replace(/第\d+周\s*·\s*/,'').trim();
     let row=rows.find(r=>r.id===a.lessonId);
     if(!row){const hits=rows.filter(r=>(r.aliases||[]).some(v=>identity(v)===identity(a.lesson)));if(hits.length===1)row=hits[0];}
-    return row?{key:'lesson:'+row.id,label:row.aliases?.at(-1)||[row.date,row.period,row.course].filter(Boolean).join(' · '),date:row.date||''}:{key:'unknown:'+String(a.date||'')+'|'+String(a.lesson||'未标注课节'),label:(a.lesson||'未标注课节')+'（课次待核对）',date:a.date||''};
+    return row&&row.id!=null&&String(row.id).trim()?{key:'lesson:'+row.id,label:row.aliases?.at(-1)||[row.date,row.period,row.course].filter(Boolean).join(' · '),date:row.date||''}:{key:'unknown:'+String(a.date||'')+'|'+String(a.lesson||'未标注课节'),label:(a.lesson||'未标注课节')+'（课次待核对）',date:a.date||''};
   }
   function attendanceGroups(data){
-    const groups=new Map();for(const a of data.attendance||[]){const lesson=attendanceLesson(data,a);if(!groups.has(lesson.key))groups.set(lesson.key,{...lesson,latest:new Map()});const g=groups.get(lesson.key),student=a.studentId?'id:'+a.studentId:'no:'+a.no,old=g.latest.get(student);if(!old||String(a.time||'')>String(old.time||''))g.latest.set(student,a);}
-    return [...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.key.localeCompare(b.key)).map(g=>({...g,items:[...g.latest.values()].sort((a,b)=>String(a.no).localeCompare(String(b.no),undefined,{numeric:true}))}));
+    const groups=new Map();for(const [index,a] of (data.attendance||[]).entries()){const lesson=attendanceLesson(data,a);if(!groups.has(lesson.key))groups.set(lesson.key,{...lesson,latest:new Map(),records:[]});const g=groups.get(lesson.key),student=a.studentId?'id:'+a.studentId:a.no!=null&&String(a.no).trim()?'no:'+a.no:'unidentified:'+index,old=g.latest.get(student);g.records.push(a);if(!old||String(a.time||'')>String(old.time||''))g.latest.set(student,a);}
+    return [...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.key.localeCompare(b.key)).map(g=>({...g,records:[...g.records].sort((a,b)=>String(b.time||'').localeCompare(String(a.time||''))),items:[...g.latest.values()].sort((a,b)=>String(a.no).localeCompare(String(b.no),undefined,{numeric:true}))}));
   }
   const api={calculate,attendanceFacts,attendanceDeduction,attendanceDefaults,attendancePolicy,attendanceLesson,attendanceGroups,key,round,numeric,commit,travel,duty,dutyScore};
   if(typeof module!=='undefined')module.exports=api;

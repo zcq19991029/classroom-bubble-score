@@ -170,6 +170,17 @@
       if(syncPending)throw Error(syncConflict?'云端已变化，统一规则待核对，本机已保留':'断网或保存失败：统一规则已留本机，将自动重试');
     }
   };
+  window.getCloudPayloadSnapshot=()=>clone(cloudPayload);
+  window.importCloudClasses=async items=>{
+    if(!teacher||loading||syncConflict)throw Error('请先登录并解决同步冲突');
+    if(scheduleSaving||syncInFlight)throw Error('正在同步，请稍后重试');
+    for(const item of items){if(!item?.className||!Array.isArray(item.students)||!Array.isArray(item.logs)||!Array.isArray(item.attendance))throw Error('备份缺少班级、积分日志或考勤数组，已停止导入');}
+    for(const item of items)cloudPayload.classes[item.className]=normalizeClass(item);
+    editGeneration++;syncPending=true;clearTimeout(syncTimer);
+    if(!rememberPending())throw Error('本机备份失败，请保持页面打开并重试');
+    await flush();if(syncPending)throw Error(syncConflict?'云端已变化，导入副本已保留，请核对后重试':'导入尚未上传，副本已留本机');
+    renderClasses();
+  };
   window.classroomClassManager = {
     snapshot(){if(!teacher||loading)throw Error('请等待登录和同步完成');return clone(cloudPayload)},
     backupAll(){
