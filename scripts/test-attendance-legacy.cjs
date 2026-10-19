@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict'),M=require('../assessment-model.js');
+const className='虚构电气1班',course='隔离课程',student={id:'a',studentNo:'01'};
+const label=(day,period='1-2',cls=className,crs=course)=>`第${day}节课 · 第1周 · 9月${day}日星期一 · ${cls} · ${period}节 · ${crs}`;
+const schedule=Array.from({length:5},(_,i)=>({date:'2026-09-0'+(i+1),period:'1-2',course}));
+const data={className,students:[student],settings:{},lessonSchedule:schedule,attendance:['旷课','旷课','迟到','早退','迟到'].map((status,i)=>({id:'r'+i,studentId:'a',no:'01',lesson:label(i+1),status,date:'2026-10-15',time:'2026-10-15T0'+i+':00:00Z'}))};
+assert.equal(M.attendanceCoverage(data,student,'2026-09-05').complete,true);const missing=structuredClone(data);missing.attendance.pop();assert.equal(M.attendanceCoverage(missing,student,'2026-09-05').complete,false);
+const original=JSON.stringify(data),groups=M.attendanceGroups(data);assert.equal(groups.length,5);assert.equal(groups.reduce((n,g)=>n+g.records.length,0),5);assert(groups.every(g=>g.known&&g.key.startsWith('legacy:')));const f=M.attendanceFacts(data,student);assert.equal(f.actualTruant,2);assert.equal(f.late,2);assert.equal(f.early,1);assert.equal(f.totalTruant,3);assert.equal(f.loss,9);assert.equal(f.failed,true);assert.equal(f.unknown,false);assert.equal(JSON.stringify(data),original,'read-only compatibility must not add ids or aliases');
+data.attendance.push({...data.attendance[4],id:'correction',date:'2026-10-19',time:'2026-10-19T00:00:00Z',status:'签到'});assert.equal(M.attendanceGroups(data).reduce((n,g)=>n+g.records.length,0),6);assert.equal(M.attendanceFacts(data,student).failed,false);assert.equal(M.attendanceFacts(data,student).loss,8);
+for(const wrong of [label(1,'1-2','另一班'),label(1,'1-2',className,'另一课程'),label(1,'3-4')])assert.equal(M.attendanceLesson(data,{lesson:wrong}).known,false);
+const twoPeriods=structuredClone(data);twoPeriods.lessonSchedule.push({date:'2026-09-01',period:'3-4',course});assert.notEqual(M.attendanceLesson(twoPeriods,{lesson:label(1)}).key,M.attendanceLesson(twoPeriods,{lesson:label(1,'3-4')}).key);
+const ambiguous=structuredClone(data);ambiguous.lessonSchedule.push({date:'2027-09-01',period:'1-2',course});assert.equal(M.attendanceLesson(ambiguous,{lesson:label(1)}).known,false);
+const stable=structuredClone(data);stable.lessonSchedule[0]={...stable.lessonSchedule[0],id:'existing-id',aliases:[label(1)]};assert.equal(M.attendanceLesson(stable,{lesson:label(1)}).key,'lesson:existing-id');
+console.log('PASS id-less custom schedules: raw history retained, strict class/course/date/period identity, backfill/correction dedup, truancy folding, ambiguity rejected, immutable calendar');

@@ -81,7 +81,7 @@
 <div class="app">
   <div class="watermark"></div>
   <header>
-    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-19 23:25</button></small></div></div>
+    <div class="brand"><div class="brand-mark">✦</div><div><h1 id="classTitle">课堂加分气泡</h1><small><span id="saveStatus">已自动保存</span><button type="button" class="build-version" id="buildVersion" title="点击检查最新版">发布 2026-10-19 23:42</button></small></div></div>
     <div class="toolbar">
       <select id="classSwitcher" class="btn class-switcher" title="切换班级"></select>
       <div class="search-box">⌕<input id="studentSearch" placeholder="姓名 / 学号后两位 / 完整学号" /><span id="searchCount"></span></div>
@@ -306,7 +306,7 @@
 <script>
 (() => {
   'use strict';
-  const BUILD_ID='20261019-attendance-history-recovery',buildVersion=document.querySelector('#buildVersion');
+  const BUILD_ID='20261019-legacy-attendance-compat',buildVersion=document.querySelector('#buildVersion');
   if(buildVersion){
     buildVersion.onclick=()=>location.replace(`${location.pathname}?v=${BUILD_ID}-${Date.now()}`);
     fetch(`version.json?t=${Date.now()}`,{cache:'no-store'}).then(response=>response.ok?response.json():Promise.reject(new Error('版本检查失败'))).then(latest=>{
@@ -420,7 +420,7 @@
   function homeworkModuleScore(s){return clampScore(100+data.homework.filter(h=>h.studentId===s.id||(!h.studentId&&String(h.no)===String(s.studentNo))).reduce((sum,h)=>sum+Number(h.delta||0),0))}
   function homeworkHistory(){if(!data.homework.length)return '<div class="empty" style="padding:25px">还没有作业扣分或加分记录</div>';return `<div class="homework-history">${[...data.homework].sort((a,b)=>String(b.time).localeCompare(String(a.time))).map(h=>`<div class="homework-item"><span>${esc(h.no)}<br><b>${esc(h.name)}</b></span><span>${esc(h.reason||'作业分调整')}</span><b class="delta ${h.delta>0?'plus':'minus'}">${h.delta>0?'+':''}${h.delta}</b><button data-delhomework="${esc(h.id)}">删除</button></div>`).join('')}</div>`}
   function assessmentPage(){return assessmentPageByRegularScore()}
-  function criterionCoverage(s){const due=(data.lessonSchedule||[]).filter(l=>l.date&&l.date<=localDate()),records=(data.attendance||[]).filter(a=>a.studentId===s.id||(!a.studentId&&String(a.no)===String(s.studentNo)));return {complete:due.length>0&&due.every(l=>records.some(a=>(l.id&&a.lessonId===l.id)||sameLesson(a.lesson,l.id)))}}
+  function criterionCoverage(s){return CriterionAssessment.attendanceCoverage(data,s,localDate())}
   let criterionGroupOverride=null;
   window.openCriterionForGroup=group=>{criterionGroupOverride=group?{data,group}:null;document.querySelector('#groupingModal')?.classList.remove('open');openModal('databaseModal');document.querySelector('[data-tab=assessment]')?.click();document.querySelector('[data-entry-panel]')?.setAttribute('open','');const select=document.querySelector('[data-duty-group]');if(select&&group){select.value=group.id;select.dispatchEvent(new Event('change',{bubbles:true}))}};
   function criterionDutyIds(){const sorted=[...data.students].sort((a,b)=>Number(shortNo(a.studentNo,0))-Number(shortNo(b.studentNo,0))||String(a.studentNo).localeCompare(String(b.studentNo),undefined,{numeric:true})),start=((lessonNo()-1)*4)%Math.max(1,sorted.length);return Array.from({length:Math.min(4,sorted.length)},(_,i)=>sorted[(start+i)%sorted.length].id)}

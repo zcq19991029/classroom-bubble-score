@@ -24,7 +24,7 @@ d.attendance=Array.from({length:9},(_,i)=>rec('t'+i,'工具未还'));assert.equa
 d.attendance=[rec('same','旷课',{time:'2026-01-01'}),rec('same','签到',{time:'2026-02-01'}),rec('custom','工具未还'),rec('leave','请假')];assert.equal(calc(a).attendanceFacts.actualTruant,0);assert.equal(calc(a).attendance,46);
 d.attendance=[rec('snap','迟到',{deduction:1})];d.settings.absenceDeduction=10;assert.equal(calc(a).attendance,47);
 d.attendance=[rec('loss','工具未还',{deduction:100})];assert.equal(calc(a).attendance,0);assert.equal(calc(a).regular,26);
-d.attendance=[rec('old','旷课',{lessonId:null,lesson:'旧别名'}),rec('new','签到',{lessonId:'stable',time:'2026-10-02'})];let facts=M.attendanceFacts(d,a,{resolve:()=> 'stable'});assert.equal(facts.actualTruant,0);assert.equal(facts.score,48);
+d.lessonSchedule.push({id:'stable',aliases:['旧别名']});d.attendance=[rec('old','旷课',{lessonId:null,lesson:'旧别名'}),rec('new','签到',{lessonId:'stable',time:'2026-10-02'})];let facts=M.attendanceFacts(d,a);assert.equal(facts.actualTruant,0);assert.equal(facts.score,48);
 d.attendance=[];delete d.examScores.a;assert.equal(calc(a).exam,null);assert.equal(calc(a).final,null);d.examScores.a=0;assert.equal(calc(a).final,29.6);assert.equal(calc(a).exam,0);
 d.settings.passScore=100;assert(calc(a).needed>100);d.settings.passScore=60;
 assert.equal(M.calculate(d,a,undefined,{complete:false}).ready,false);

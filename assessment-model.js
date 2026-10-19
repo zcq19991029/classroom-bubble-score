@@ -30,14 +30,9 @@
   }
   function attendanceFacts(data,s,options={}){
     const latest=new Map();let unknown=false;
-    const rows=[...(data.lessonSchedule||[]),...(data.archivedLessons||[])];
-    const identity=value=>String(value||'').replace(/第\d+周\s*·\s*/,'').trim();
     function resolve(a){
-      if(a.lessonId&&rows.some(r=>r.id===a.lessonId))return a.lessonId;
-      const found=options.resolve?.(a.lessonId)||options.resolve?.(a.lesson);
-      if(found)return found;
-      const hits=a.lesson?rows.filter(r=>(r.aliases||[]).some(v=>identity(v)===identity(a.lesson))):[];
-      return hits.length===1?hits[0].id:null;
+      const resolved=attendanceLesson(data,a);
+      return resolved.known?resolved.key:null;
     }
     for(const a of data.attendance||[]){if(!(a.studentId===s.id||(!a.studentId&&String(a.no)===String(s.studentNo))))continue;
       const lesson=resolve(a);
@@ -75,15 +70,25 @@
   }
   function attendanceLesson(data,a){
     const rows=[...(data.lessonSchedule||[]),...(data.archivedLessons||[])],identity=v=>String(v||'').replace(/第\d+周\s*·\s*/,'').trim();
-    let row=rows.find(r=>r.id===a.lessonId);
+    let row=a.lessonId?rows.find(r=>r.id===a.lessonId):null;
     if(!row){const hits=rows.filter(r=>(r.aliases||[]).some(v=>identity(v)===identity(a.lesson)));if(hits.length===1)row=hits[0];}
-    return row&&row.id!=null&&String(row.id).trim()?{key:'lesson:'+row.id,label:row.aliases?.at(-1)||[row.date,row.period,row.course].filter(Boolean).join(' · '),date:row.date||''}:{key:'unknown:'+String(a.date||'')+'|'+String(a.lesson||'未标注课节'),label:(a.lesson||'未标注课节')+'（课次待核对）',date:a.date||''};
+    // Legacy custom schedules have no ids/aliases. Match the displayed lesson's
+    // date, period, class AND course, never its data-entry date or sequence number.
+    if(!row){const m=identity(a.lesson).match(/^第\d+节课\s*·\s*(\d{1,2})月(\d{1,2})日星期[一二三四五六日天]\s*·\s*([^·]+?)\s*·\s*(\d{1,2}-\d{1,2})节\s*·\s*(.+)$/);if(m&&m[3].trim()===String(data.className||'').trim()){const dateSuffix='-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0'),hits=rows.filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date||'')&&r.date.endsWith(dateSuffix)&&r.period===m[4]&&String(r.course||'').trim()===m[5].trim());if(hits.length===1)row=hits[0];}}
+    if(row&&row.id!=null&&String(row.id).trim())return {key:'lesson:'+row.id,known:true,label:row.aliases?.at(-1)||a.lesson||[row.date,row.period,row.course].filter(Boolean).join(' · '),date:row.date||''};
+    if(row&&/^\d{4}-\d{2}-\d{2}$/.test(row.date||'')&&/^\d{1,2}-\d{1,2}$/.test(row.period||'')&&String(row.course||'').trim()&&data.className)return {key:'legacy:'+JSON.stringify([data.className,row.date,row.period,row.course]),known:true,label:row.aliases?.at(-1)||a.lesson,date:row.date};
+    return {key:'unknown:'+String(a.date||'')+'|'+String(a.lesson||'未标注课节'),known:false,label:(a.lesson||'未标注课节')+'（课次待核对）',date:a.date||''};
   }
   function attendanceGroups(data){
     const groups=new Map();for(const [index,a] of (data.attendance||[]).entries()){const lesson=attendanceLesson(data,a);if(!groups.has(lesson.key))groups.set(lesson.key,{...lesson,latest:new Map(),records:[]});const g=groups.get(lesson.key),student=a.studentId?'id:'+a.studentId:a.no!=null&&String(a.no).trim()?'no:'+a.no:'unidentified:'+index,old=g.latest.get(student);g.records.push(a);if(!old||String(a.time||'')>String(old.time||''))g.latest.set(student,a);}
     return [...groups.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.key.localeCompare(b.key)).map(g=>({...g,records:[...g.records].sort((a,b)=>String(b.time||'').localeCompare(String(a.time||''))),items:[...g.latest.values()].sort((a,b)=>String(a.no).localeCompare(String(b.no),undefined,{numeric:true}))}));
   }
-  const api={calculate,attendanceFacts,attendanceDeduction,attendanceDefaults,attendancePolicy,attendanceLesson,attendanceGroups,key,round,numeric,commit,travel,duty,dutyScore};
+  function attendanceCoverage(data,s,date){
+    const due=(data.lessonSchedule||[]).filter(r=>r.date&&r.date<=date),known=new Set();
+    for(const a of data.attendance||[]){if(!(a.studentId===s.id||(!a.studentId&&String(a.no)===String(s.studentNo))))continue;const r=attendanceLesson(data,a);if(r.known)known.add(r.key);}
+    return {complete:due.length>0&&due.every(r=>{const ref=r.id?'lesson:'+r.id:'legacy:'+JSON.stringify([data.className,r.date,r.period,r.course]);return known.has(ref)})};
+  }
+  const api={calculate,attendanceFacts,attendanceDeduction,attendanceDefaults,attendancePolicy,attendanceLesson,attendanceGroups,attendanceCoverage,key,round,numeric,commit,travel,duty,dutyScore};
   if(typeof module!=='undefined')module.exports=api;
   root.CriterionAssessment=api;
 })(typeof window==='undefined'?globalThis:window);
