@@ -4,8 +4,8 @@
 
 ## 在线使用
 
-- Sites 线上版：<https://classroom-bubble-score.zcq991029.chatgpt.site>
-- GitHub 源码：<https://github.com/zcq19991029/classroom-bubble-score>
+- Sites 线上版：<https://jiafen-qipao.zcq991029.chatgpt.site>
+- GitHub 源码：<https://github.com/zcq19991029/jiafen-qipao>
 - 当前发布版本：2026-10-06 01:57（Sites v22）
 
 GitHub 用于源码和版本审计，Sites 用于线上运行；不要把 GitHub Pages 当作生产入口。
